@@ -1,0 +1,107 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.secao {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tituloSecao {
+  color: var(--nhac-texto);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.cabecalhoSecao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gridCampos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uploadWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rotulo {
+  color: var(--nhac-texto);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.areaUpload {
+  border: 2px dashed var(--nhac-borda);
+  border-radius: var(--raio-cartao);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--nhac-texto-claro);
+  cursor: pointer;
+  background-color: var(--nhac-fundo);
+  transition: all 0.2s ease;
+}
+
+.areaUpload:hover {
+  border-color: var(--nhac-primaria);
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.toggleWrapper {
+  margin-top: 8px;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nhac-borda);
+}
+
+.vazio {
+  color: var(--nhac-texto-claro);
+  font-style: italic;
+}
+
+.listaAdicionais {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grupoAdicional {
+  padding: 16px;
+  border: 1px solid var(--nhac-borda);
+  border-radius: var(--raio-cartao);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linhaGrupo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}

@@ -1,0 +1,120 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.titulo {
+  color: var(--nhac-texto);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.filtros {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.buscaWrapper {
+  flex: 2;
+}
+
+.categoriaWrapper {
+  flex: 1;
+}
+
+.vazio {
+  padding: 48px;
+  text-align: center;
+  color: var(--nhac-texto-claro);
+  background-color: var(--nhac-superficie);
+  border-radius: var(--raio-cartao);
+  border: 1px dashed var(--nhac-borda);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.cartaoProduto {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.imagemWrapper {
+  width: 100%;
+  height: 200px;
+  background-color: var(--nhac-fundo);
+}
+
+.imagem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linha1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.nome {
+  margin: 0;
+  color: var(--nhac-texto);
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.preco {
+  margin: 0;
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nhac-borda);
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .filtros {
+    flex-direction: column;
+  }
+  .buscaWrapper, .categoriaWrapper {
+    width: 100%;
+  }
+}
