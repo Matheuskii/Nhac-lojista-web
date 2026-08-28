@@ -1,0 +1,140 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filtros {
+  display: flex;
+  gap: 12px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.cartaoKpi {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.iconeKpi {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--raio-pilula);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.infoKpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoKpi span {
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+}
+
+.infoKpi strong {
+  color: var(--nhac-texto);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.gridGraficos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.cartaoGrafico {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  height: 400px;
+}
+
+.tituloGrafico {
+  color: var(--nhac-texto);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 24px 0;
+}
+
+.graficoWrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.tabelaCartao {
+  padding: 0;
+  padding-bottom: 8px;
+}
+
+.responsivoTabela {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabela th {
+  padding: 16px 24px;
+  background-color: var(--nhac-fundo);
+  color: var(--nhac-texto-claro);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--nhac-borda);
+}
+
+.tabela td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--nhac-borda);
+  color: var(--nhac-texto);
+  font-size: 0.9375rem;
+}
+
+.tabela tr:last-child td {
+  border-bottom: none;
+}
+
+.tabela tr:nth-child(even) {
+  background-color: var(--nhac-fundo);
+}
+
+.nomeProduto {
+  font-weight: 600;
+}
+
+.valorProduto {
+  font-weight: 600;
+  color: var(--nhac-primaria);
+}
+
+@media (max-width: 1024px) {
+  .gridGraficos {
+    grid-template-columns: 1fr;
+  }
+  .cartaoGrafico {
+    height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtros {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+}
