@@ -1,0 +1,30 @@
+export const CATEGORIAS_LOJA = [
+  'Lanches',
+  'Pizza',
+  'Japonesa',
+  'Brasileira',
+  'Doces & Sobremesas',
+  'Saudável',
+  'Bebidas',
+  'Marmita',
+  'Açaí & Sorvetes',
+  'Árabe',
+  'Italiana',
+  'Mexicana',
+  'Chinesa',
+  'Padaria',
+  'Cafeteria',
+] as const;
+
+export const CATEGORIAS_PRODUTO = [
+  'Hambúrgueres',
+  'Pizzas',
+  'Porções',
+  'Bebidas',
+  'Sobremesas',
+  'Combos',
+  'Saladas',
+  'Pratos Executivos',
+  'Acompanhamentos',
+  'Sucos',
+] as const;
