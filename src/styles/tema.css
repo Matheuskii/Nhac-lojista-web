@@ -1,0 +1,88 @@
+:root {
+  /* Cores base */
+  --nhac-fundo: #FFE7E5;
+  --nhac-primaria: #FF6961;
+  --nhac-texto: #5D201C;
+  --nhac-superficie: #FFFFFF;
+
+  /* Derivadas - primária */
+  --nhac-primaria-hover: #E85D56;
+  --nhac-primaria-ativa: #D4524B;
+  --nhac-primaria-claro: #FF8A84;
+  --nhac-primaria-fundo: #FFF0EF;
+  --nhac-primaria-fundo-hover: #FFE0DE;
+
+  /* Derivadas - texto */
+  --nhac-texto-claro: #8B4944;
+  --nhac-texto-sutil: #A86B67;
+  --nhac-texto-invertido: #FFFFFF;
+
+  /* Bordas e superfícies */
+  --nhac-borda: #F5C4C1;
+  --nhac-borda-foco: #FF6961;
+  --nhac-desabilitado: #D4A8A5;
+  --nhac-desabilitado-fundo: #F2D5D3;
+  --nhac-superficie-elevada: #FFFFFF;
+
+  /* Status */
+  --nhac-sucesso: #4CAF50;
+  --nhac-sucesso-fundo: #E8F5E9;
+  --nhac-erro: #E53935;
+  --nhac-erro-fundo: #FFEBEE;
+  --nhac-aviso: #FF9800;
+  --nhac-aviso-fundo: #FFF3E0;
+  --nhac-info: #2196F3;
+  --nhac-info-fundo: #E3F2FD;
+
+  /* Raios de borda */
+  --raio-pilula: 999px;
+  --raio-cartao: 16px;
+  --raio-modal: 20px;
+  --raio-pequeno: 8px;
+  --raio-medio: 12px;
+
+  /* Sombras */
+  --sombra-cartao: 0 2px 12px rgba(93, 32, 28, 0.08);
+  --sombra-elevada: 0 4px 24px rgba(93, 32, 28, 0.12);
+  --sombra-suave: 0 1px 4px rgba(93, 32, 28, 0.06);
+
+  /* Espaçamentos */
+  --espaco-xs: 4px;
+  --espaco-sm: 8px;
+  --espaco-md: 16px;
+  --espaco-lg: 24px;
+  --espaco-xl: 32px;
+  --espaco-2xl: 48px;
+
+  /* Tipografia */
+  --fonte-familia: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --fonte-tamanho-xs: 0.75rem;
+  --fonte-tamanho-sm: 0.875rem;
+  --fonte-tamanho-base: 1rem;
+  --fonte-tamanho-lg: 1.125rem;
+  --fonte-tamanho-xl: 1.25rem;
+  --fonte-tamanho-2xl: 1.5rem;
+  --fonte-tamanho-3xl: 2rem;
+  --fonte-peso-regular: 400;
+  --fonte-peso-medio: 500;
+  --fonte-peso-semibold: 600;
+  --fonte-peso-bold: 700;
+
+  /* Transições */
+  --transicao-rapida: 150ms ease;
+  --transicao-media: 250ms ease;
+  --transicao-lenta: 350ms ease;
+
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-fixo: 200;
+  --z-modal-fundo: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* Larguras */
+  --largura-sidebar: 260px;
+  --largura-max-conteudo: 1200px;
+  --altura-barra-superior: 64px;
+  --altura-nav-mobile: 64px;
+}
