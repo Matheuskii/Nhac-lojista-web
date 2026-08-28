@@ -1,0 +1,139 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.titulo {
+  color: var(--nhac-texto);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tabelaCartao {
+  padding: 0;
+  overflow: hidden;
+}
+
+.responsivoTabela {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tabela th {
+  padding: 16px;
+  background-color: var(--nhac-fundo);
+  color: var(--nhac-texto-claro);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--nhac-borda);
+}
+
+.tabela td {
+  padding: 16px;
+  border-bottom: 1px solid var(--nhac-borda);
+  color: var(--nhac-texto);
+  vertical-align: middle;
+}
+
+.tabela tr:last-child td {
+  border-bottom: none;
+}
+
+.infoUsuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nome {
+  font-weight: 600;
+}
+
+.contato {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.email {
+  font-size: 0.875rem;
+  color: var(--nhac-texto);
+}
+
+.telefone {
+  font-size: 0.75rem;
+  color: var(--nhac-texto-claro);
+}
+
+.acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.listaMobile {
+  display: none;
+  flex-direction: column;
+}
+
+.cartaoMobile {
+  padding: 16px;
+  border-bottom: 1px solid var(--nhac-borda);
+}
+
+.cartaoMobile:last-child {
+  border-bottom: none;
+}
+
+.cabecalhoMobile {
+  margin-bottom: 16px;
+}
+
+.corpoMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detalheMobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rotulo {
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+}
+
+.acoesMobile {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.acoesMobile > * {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .responsivoTabela {
+    display: none;
+  }
+  .listaMobile {
+    display: flex;
+  }
+}
