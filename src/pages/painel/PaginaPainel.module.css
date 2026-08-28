@@ -1,0 +1,162 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.boasVindas {
+  color: var(--nhac-texto);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitulo {
+  color: var(--nhac-texto-claro);
+  margin: 0;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.cartaoKpi {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.kpiIcone {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--raio-pilula);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpiInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpiRotulo {
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.kpiValor {
+  color: var(--nhac-texto);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.duasColunas {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.secaoCabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.secaoTitulo {
+  color: var(--nhac-texto);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.listaPedidos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cartaoPedido {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+}
+
+.pedidoPrincipal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pedidoId {
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pedidoCliente {
+  color: var(--nhac-texto);
+  font-weight: 600;
+}
+
+.pedidoStatus {
+  flex: 1;
+}
+
+.pedidoTotal {
+  color: var(--nhac-texto);
+  font-weight: 600;
+  flex: 1;
+  text-align: right;
+}
+
+.pedidoTempo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+  flex: 1;
+}
+
+.linksRapidos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gridLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .duasColunas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cartaoPedido {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pedidoTotal, .pedidoTempo {
+    text-align: left;
+  }
+}
