@@ -1,0 +1,90 @@
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--raio-pilula);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.botao:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Variantes */
+.primario {
+  background-color: var(--nhac-primaria);
+  color: var(--nhac-superficie);
+}
+.primario:hover:not(:disabled) {
+  background-color: var(--nhac-primaria-hover);
+}
+
+.secundario {
+  background-color: var(--nhac-superficie);
+  color: var(--nhac-primaria);
+  border: 2px solid var(--nhac-primaria);
+}
+.secundario:hover:not(:disabled) {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.fantasma {
+  background-color: transparent;
+  color: var(--nhac-primaria);
+}
+.fantasma:hover:not(:disabled) {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.perigo {
+  background-color: #EF4444;
+  color: var(--nhac-superficie);
+}
+.perigo:hover:not(:disabled) {
+  background-color: #DC2626;
+}
+
+/* Tamanhos */
+.pequeno {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.medio {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+.grande {
+  padding: 14px 28px;
+  font-size: 18px;
+}
+
+/* Utilitários */
+.larguraTotal {
+  width: 100%;
+}
+
+.iconeCarregando {
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.icone {
+  display: flex;
+  align-items: center;
+}
+
+.conteudo {
+  display: inline-block;
+}

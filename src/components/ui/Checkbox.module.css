@@ -1,0 +1,57 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.desabilitado {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inputOculto {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.caixa {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--nhac-borda);
+  border-radius: 4px;
+  background-color: var(--nhac-superficie);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.inputOculto:focus-visible + .caixa {
+  box-shadow: 0 0 0 2px var(--nhac-superficie), 0 0 0 4px var(--nhac-primaria);
+}
+
+.marcado {
+  background-color: var(--nhac-primaria);
+  border-color: var(--nhac-primaria);
+}
+
+.icone {
+  color: var(--nhac-superficie);
+}
+
+.rotulo {
+  color: var(--nhac-texto);
+  font-size: 16px;
+  user-select: none;
+}

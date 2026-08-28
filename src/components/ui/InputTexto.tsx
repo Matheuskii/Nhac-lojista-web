@@ -1,0 +1,70 @@
+import React, { InputHTMLAttributes, ReactNode, useState, useEffect } from 'react';
+import estilos from './InputTexto.module.css';
+
+export interface PropsInputTexto extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
+  rotulo: string;
+  tipo?: string;
+  valor: string;
+  aoMudar: (valor: string) => void;
+  icone?: ReactNode;
+  erro?: string;
+  obrigatorio?: boolean;
+  mascara?: (valor: string) => string;
+}
+
+const InputTexto = ({
+  rotulo,
+  valor,
+  aoMudar,
+  icone,
+  erro,
+  obrigatorio = false,
+  disabled = false,
+  mascara,
+  tipo,
+  type = 'text',
+  placeholder,
+  ...props
+}: PropsInputTexto) => {
+  const tipoFinal = tipo || type;
+  const [focado, setFocado] = useState(false);
+  const temValor = valor !== undefined && valor !== null && valor !== '';
+
+  const lidarComMudanca = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let novoValor = e.target.value;
+    if (mascara) {
+      novoValor = mascara(novoValor);
+    }
+    aoMudar(novoValor);
+  };
+
+  return (
+    <div className={`${estilos.container} ${disabled ? estilos.desabilitado : ''}`}>
+      <div className={`${estilos.inputWrapper} ${focado ? estilos.focado : ''} ${erro ? estilos.comErro : ''}`}>
+        {icone && <div className={estilos.icone}>{icone}</div>}
+        
+        <div className={estilos.campo}>
+          <label className={`${estilos.rotulo} ${(focado || temValor || placeholder) ? estilos.rotuloFlutuante : ''}`}>
+            {rotulo} {obrigatorio && <span className={estilos.asterisco}>*</span>}
+          </label>
+          
+          <input
+            type={tipoFinal}
+            value={valor}
+            onChange={lidarComMudanca}
+            onFocus={() => setFocado(true)}
+            onBlur={() => setFocado(false)}
+            disabled={disabled}
+            placeholder={focado ? placeholder : undefined}
+            className={estilos.input}
+            {...props}
+          />
+        </div>
+      </div>
+      
+      {erro && <span className={estilos.mensagemErro}>{erro}</span>}
+    </div>
+  );
+};
+
+export default InputTexto;

@@ -1,0 +1,96 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  background-color: var(--nhac-superficie);
+  border: 1px solid var(--nhac-borda);
+  border-radius: var(--raio-pilula);
+  padding: 0 16px;
+  min-height: 52px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.focado {
+  border-color: var(--nhac-primaria);
+  box-shadow: 0 0 0 2px var(--nhac-primaria-fundo);
+}
+
+.comErro {
+  border-color: #EF4444;
+}
+
+.icone {
+  color: var(--nhac-texto-claro);
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.campo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  justify-content: center;
+}
+
+.rotulo {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--nhac-texto-claro);
+  font-size: 16px;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.rotuloFlutuante {
+  top: 12px;
+  font-size: 12px;
+  color: var(--nhac-primaria);
+}
+
+.asterisco {
+  color: #EF4444;
+}
+
+.input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--nhac-texto);
+  font-size: 16px;
+  padding-top: 16px; /* Space for the floating label */
+  padding-bottom: 4px;
+  font-family: inherit;
+}
+
+.desabilitado {
+  opacity: 0.6;
+}
+
+.desabilitado .inputWrapper {
+  background-color: #F9FAFB;
+}
+
+.desabilitado .input {
+  cursor: not-allowed;
+}
+
+.mensagemErro {
+  color: #EF4444;
+  font-size: 12px;
+  margin-left: 16px;
+  margin-top: 2px;
+}

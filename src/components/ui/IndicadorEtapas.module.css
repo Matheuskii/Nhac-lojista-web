@@ -1,0 +1,91 @@
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+.etapaWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.clicavel {
+  cursor: pointer;
+}
+
+.clicavel:hover .circulo {
+  box-shadow: 0 0 0 4px var(--nhac-primaria-fundo);
+}
+
+.circulo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background-color: var(--nhac-superficie);
+}
+
+.completa {
+  background-color: var(--nhac-primaria);
+  color: var(--nhac-superficie);
+  border: 2px solid var(--nhac-primaria);
+}
+
+.ativa {
+  border: 2px solid var(--nhac-primaria);
+  color: var(--nhac-primaria);
+}
+
+.pendente {
+  border: 2px solid #E5E7EB;
+  color: #9CA3AF;
+}
+
+.rotulo {
+  font-size: 14px;
+  color: var(--nhac-texto);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rotuloAtivo {
+  font-weight: 600;
+}
+
+.rotuloPendente {
+  color: #9CA3AF;
+}
+
+.linha {
+  flex: 1;
+  height: 2px;
+  background-color: #E5E7EB;
+  margin: 0 12px;
+  margin-bottom: 24px; /* offset for the label height */
+  transition: background-color 0.3s ease;
+}
+
+.linhaCompleta {
+  background-color: var(--nhac-primaria);
+}
+
+@media (max-width: 640px) {
+  .rotulo {
+    display: none;
+  }
+  
+  .linha {
+    margin-bottom: 0;
+  }
+}

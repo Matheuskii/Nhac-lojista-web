@@ -1,0 +1,38 @@
+.emblema {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: var(--raio-pilula);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.sucesso {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.erro {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.aviso {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.info {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+}
+
+.neutro {
+  background-color: #F3F4F6;
+  color: #374151;
+}
