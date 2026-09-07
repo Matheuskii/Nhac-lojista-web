@@ -158,6 +158,12 @@ const PaginaConfiguracoesConta = () => {
             <Toggle rotulo="Novidades e promoções da Nhac" ativo={notifNovidades} aoMudar={setNotifNovidades} />
           </div>
         </Cartao>
+
+        <div className={estilos.acoesRodape}>
+          <Botao variante="fantasma" onClick={() => navigate('/configuracoes')}>
+            Voltar
+          </Botao>
+        </div>
       </div>
     </LayoutPagina>
   );

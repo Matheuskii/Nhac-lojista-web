@@ -6,7 +6,6 @@ import {
   MessageCircle, 
   Users, 
   BarChart3, 
-  LogOut,
   ClipboardList,
   Settings
 } from 'lucide-react';
@@ -37,7 +36,7 @@ interface BarraLateralProps {
 }
 
 const BarraLateral: React.FC<BarraLateralProps> = ({ abertaMobile = false, onFechar }) => {
-  const { usuario, sair, trocarCargo } = useAutenticacao();
+  const { usuario, trocarCargo } = useAutenticacao();
 
   if (!usuario) return null;
 
@@ -87,10 +86,6 @@ const BarraLateral: React.FC<BarraLateralProps> = ({ abertaMobile = false, onFec
             </select>
           </div>
         </div>
-        <button onClick={sair} className={estilos.botaoSair}>
-          <LogOut size={20} />
-          <span>Sair</span>
-        </button>
       </div>
     </aside>
   );

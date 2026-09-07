@@ -35,9 +35,11 @@ const Seletor = ({
     <div className={`${estilos.container} ${desabilitado ? estilos.desabilitado : ''}`}>
       <div className={`${estilos.seletorWrapper} ${focado ? estilos.focado : ''} ${erro ? estilos.comErro : ''}`}>
         <div className={estilos.campo}>
-          <label className={`${estilos.rotulo} ${(focado || temValor) ? estilos.rotuloFlutuante : ''}`}>
-            {rotulo} {obrigatorio && <span className={estilos.asterisco}>*</span>}
-          </label>
+          {rotulo && (
+            <label className={`${estilos.rotulo} ${(focado || temValor) ? estilos.rotuloFlutuante : ''}`}>
+              {rotulo} {obrigatorio && <span className={estilos.asterisco}>*</span>}
+            </label>
+          )}
           
           <select
             value={valor}
@@ -45,9 +47,9 @@ const Seletor = ({
             onFocus={() => setFocado(true)}
             onBlur={() => setFocado(false)}
             disabled={desabilitado}
-            className={`${estilos.select} ${!temValor ? estilos.vazio : ''}`}
+            className={`${estilos.select} ${!temValor ? estilos.vazio : ''} ${!rotulo ? estilos.semRotulo : ''}`}
           >
-            <option value="" disabled hidden>{focado ? placeholder : ''}</option>
+            <option value="" disabled hidden>{placeholder}</option>
             {opcoes.map((opcao) => (
               <option key={opcao.valor} value={opcao.valor}>
                 {opcao.rotulo}

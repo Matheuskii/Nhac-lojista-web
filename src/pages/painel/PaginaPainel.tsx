@@ -135,8 +135,8 @@ const PaginaPainel = () => {
                       <XAxis dataKey="data" tickFormatter={formatoDataGrafico} stroke="var(--nhac-texto-claro)" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="var(--nhac-texto-claro)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${val}`} />
                       <Tooltip 
-                        formatter={(value: number) => [formatarMoeda(value), 'Faturamento']}
-                        labelFormatter={(label) => formatoDataGrafico(label)}
+                        formatter={(value: any) => [formatarMoeda(Number(value) || 0), 'Faturamento']}
+                        labelFormatter={(label: any) => formatoDataGrafico(String(label || ''))}
                         contentStyle={{ borderRadius: '8px', border: '1px solid var(--nhac-borda)' }}
                       />
                       <Line type="monotone" dataKey="valor" stroke="var(--nhac-primaria)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import InputTexto from '../../components/ui/InputTexto';
-import Seletor from '../../components/ui/Seletor';
 import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Emblema from '../../components/ui/Emblema';
@@ -22,11 +21,6 @@ const PaginaListaProdutos = () => {
   const handleToggleAtivo = (id: string, novoEstado: boolean) => {
     setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: novoEstado } : p));
   };
-
-  const opcoesCategorias = [
-    { valor: '', rotulo: 'Todas as categorias' },
-    ...CATEGORIAS_PRODUTO.map(c => ({ valor: c, rotulo: c }))
-  ];
 
   const produtosFiltrados = produtos.filter(p => {
     const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase());
@@ -58,12 +52,23 @@ const PaginaListaProdutos = () => {
             />
           </div>
           <div className={estilos.categoriaWrapper}>
-            <Seletor 
-              rotulo=""
-              opcoes={opcoesCategorias} 
-              valor={categoriaFiltro} 
-              aoMudar={setCategoriaFiltro} 
-            />
+            <button
+              type="button"
+              className={`${estilos.chipCategoria} ${categoriaFiltro === '' ? estilos.chipSelecionado : ''}`}
+              onClick={() => setCategoriaFiltro('')}
+            >
+              Todas
+            </button>
+            {CATEGORIAS_PRODUTO.map((cat) => (
+              <button
+                type="button"
+                key={cat}
+                className={`${estilos.chipCategoria} ${categoriaFiltro === cat ? estilos.chipSelecionado : ''}`}
+                onClick={() => setCategoriaFiltro(cat)}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
 

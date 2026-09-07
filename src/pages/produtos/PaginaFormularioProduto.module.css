@@ -112,3 +112,21 @@
   align-items: center;
   gap: 16px;
 }
+
+@media (max-width: 480px) {
+  .linhaGrupo {
+    flex-wrap: wrap;
+  }
+
+  .acoes {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .acoesDir {
+    flex-direction: column;
+    margin-left: 0;
+    width: 100%;
+  }
+}
+

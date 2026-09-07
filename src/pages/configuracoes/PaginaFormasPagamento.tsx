@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
-import Cartao from '../../components/ui/Cartao';
 import Checkbox from '../../components/ui/Checkbox';
 import Botao from '../../components/ui/Botao';
 import { Banknote, CreditCard, Smartphone, Utensils, ShoppingBag } from 'lucide-react';
 import estilos from './PaginaFormasPagamento.module.css';
 
 const PaginaFormasPagamento = () => {
+  const navigate = useNavigate();
   const [pagamentos, setPagamentos] = useState({
     dinheiro: true,
     credito: true,
@@ -70,6 +71,9 @@ const PaginaFormasPagamento = () => {
 
         <div className={estilos.acoes}>
           {salvo && <span className={estilos.sucessoMsg}>✓ Formas de pagamento salvas!</span>}
+          <Botao variante="fantasma" onClick={() => navigate('/configuracoes')}>
+            Cancelar
+          </Botao>
           <Botao variante="primario" onClick={handleSalvar}>
             Salvar
           </Botao>

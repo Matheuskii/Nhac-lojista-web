@@ -66,6 +66,8 @@
 
 .input {
   width: 100%;
+  height: 100%;
+  flex: 1;
   border: none;
   background: transparent;
   outline: none;
@@ -94,3 +96,8 @@
   margin-left: 16px;
   margin-top: 2px;
 }
+
+.semRotulo {
+  padding-top: 0;
+}
+

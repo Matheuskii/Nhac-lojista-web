@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Cartao from '../../components/ui/Cartao';
 import InputTexto from '../../components/ui/InputTexto';
@@ -10,6 +11,7 @@ import { lojaMock } from '../../dados/loja';
 import estilos from './PaginaEnderecoLoja.module.css';
 
 const PaginaEnderecoLoja = () => {
+  const navigate = useNavigate();
   const [cep, setCep] = useState(lojaMock.endereco?.cep || '');
   const [rua, setRua] = useState(lojaMock.endereco?.rua || '');
   const [numero, setNumero] = useState(lojaMock.endereco?.numero || '');
@@ -99,6 +101,9 @@ const PaginaEnderecoLoja = () => {
 
         <div className={estilos.acoes}>
           {salvo && <span className={estilos.sucessoMsg}>✓ Endereço salvo com sucesso!</span>}
+          <Botao variante="fantasma" onClick={() => navigate('/configuracoes')}>
+            Cancelar
+          </Botao>
           <Botao variante="primario" onClick={handleSalvar}>
             Salvar endereço
           </Botao>

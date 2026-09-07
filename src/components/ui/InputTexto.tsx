@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, ReactNode, useState, useEffect } from 'react';
+import React, { InputHTMLAttributes, ReactNode, useState } from 'react';
 import estilos from './InputTexto.module.css';
 
 export interface PropsInputTexto extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
@@ -44,9 +44,11 @@ const InputTexto = ({
         {icone && <div className={estilos.icone}>{icone}</div>}
         
         <div className={estilos.campo}>
-          <label className={`${estilos.rotulo} ${(focado || temValor || placeholder) ? estilos.rotuloFlutuante : ''}`}>
-            {rotulo} {obrigatorio && <span className={estilos.asterisco}>*</span>}
-          </label>
+          {rotulo && (
+            <label className={`${estilos.rotulo} ${(focado || temValor || placeholder) ? estilos.rotuloFlutuante : ''}`}>
+              {rotulo} {obrigatorio && <span className={estilos.asterisco}>*</span>}
+            </label>
+          )}
           
           <input
             type={tipoFinal}
@@ -55,8 +57,8 @@ const InputTexto = ({
             onFocus={() => setFocado(true)}
             onBlur={() => setFocado(false)}
             disabled={disabled}
-            placeholder={focado ? placeholder : undefined}
-            className={estilos.input}
+            placeholder={rotulo ? (focado ? placeholder : undefined) : placeholder}
+            className={`${estilos.input} ${!rotulo ? estilos.semRotulo : ''}`}
             {...props}
           />
         </div>

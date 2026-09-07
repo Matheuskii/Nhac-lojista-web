@@ -39,3 +39,10 @@
   color: #388E3C;
   font-weight: 500;
 }
+
+@media (max-width: 480px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+

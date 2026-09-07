@@ -119,25 +119,6 @@
   cursor: pointer;
 }
 
-.botaoSair {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  background: none;
-  border: none;
-  color: var(--nhac-texto);
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: var(--raio-pilula);
-  transition: background-color 0.2s ease;
-}
-
-.botaoSair:hover {
-  background-color: var(--nhac-fundo);
-  color: var(--nhac-primaria);
-}
 
 @media (max-width: 1024px) {
   .barraLateral {

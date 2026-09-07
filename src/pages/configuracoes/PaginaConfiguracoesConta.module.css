@@ -87,11 +87,29 @@
 .listaToggles {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
   padding: 4px 0 8px;
 }
 
 .listaToggles > :global(.toggle-wrapper),
 .listaToggles > div:not(.divisor) {
-  padding: 12px 0;
+  padding: 16px 4px;
 }
+
+.acoesRodape {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .itemConta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .itemAcoes {
+    justify-content: flex-end;
+  }
+}
+
+
+
