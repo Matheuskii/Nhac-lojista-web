@@ -1,0 +1,41 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.cartao {
+  padding: 24px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.buscando {
+  font-size: 0.8rem;
+  color: var(--nhac-primaria);
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.sucessoMsg {
+  font-size: 0.875rem;
+  color: #388E3C;
+  font-weight: 500;
+}

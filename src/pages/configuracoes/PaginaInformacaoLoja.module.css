@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: 20px;
   max-width: 520px;
+  margin: 0 auto;
 }
 
 .perfil {
@@ -88,3 +89,12 @@
   object-fit: contain;
   padding: 6px;
 }
+
+.itemSair {
+  color: var(--nhac-erro, #d32f2f);
+}
+
+.iconeItemSair {
+  color: var(--nhac-erro, #d32f2f);
+  flex-shrink: 0;
+}

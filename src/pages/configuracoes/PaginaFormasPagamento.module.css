@@ -1,0 +1,67 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.descricao {
+  font-size: 0.9rem;
+  color: var(--nhac-texto-claro);
+  margin: 0;
+}
+
+.erro {
+  font-size: 0.875rem;
+  color: var(--nhac-erro);
+}
+
+.gridPagamentos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cartaoPagamento {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 2px solid var(--nhac-borda);
+  border-radius: var(--raio-medio);
+  cursor: pointer;
+  background: var(--nhac-superficie);
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+
+.cartaoPagamento.selecionado {
+  border-color: var(--nhac-primaria);
+  background: var(--nhac-primaria-fundo);
+}
+
+.iconePagamento {
+  color: var(--nhac-primaria);
+  flex-shrink: 0;
+}
+
+.rotuloPagamento {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--nhac-texto);
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.sucessoMsg {
+  font-size: 0.875rem;
+  color: #388E3C;
+  font-weight: 500;
+}

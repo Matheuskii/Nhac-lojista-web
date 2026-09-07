@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Cartao from '../../components/ui/Cartao';
 import Avatar from '../../components/ui/Avatar';
+import ModalConfirmacao from '../../components/ui/ModalConfirmacao';
 import { lojaMock } from '../../dados/loja';
 import { useAutenticacao } from '../../hooks/useAutenticacao';
-import { Store, Bike, CreditCard, MapPin, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { Store, CreditCard, MapPin, Settings, LogOut, ChevronRight } from 'lucide-react';
 import estilos from './PaginaInformacaoLoja.module.css';
 
 interface ItemAtalho {
@@ -16,15 +17,15 @@ interface ItemAtalho {
 
 const ITENS_LOJA: ItemAtalho[] = [
   { icone: Store, rotulo: 'Nome, categoria e descrição', caminho: '/configuracoes/editar' },
-  { icone: Bike, rotulo: 'Taxas de entrega', caminho: '/configuracoes/taxa-entrega' },
-  { icone: CreditCard, rotulo: 'Formas de pagamento' },
-  { icone: MapPin, rotulo: 'Endereço da loja' },
-  { icone: Settings, rotulo: 'Configurações da conta' },
+  { icone: CreditCard, rotulo: 'Formas de pagamento', caminho: '/configuracoes/pagamentos' },
+  { icone: MapPin, rotulo: 'Endereço da loja', caminho: '/configuracoes/endereco' },
+  { icone: Settings, rotulo: 'Configurações da conta', caminho: '/configuracoes/conta' },
 ];
 
 const PaginaInformacaoLoja = () => {
   const navigate = useNavigate();
   const { sair } = useAutenticacao();
+  const [modalSairAberto, setModalSairAberto] = useState(false);
 
   return (
     <LayoutPagina titulo="Informações da loja">
@@ -43,7 +44,6 @@ const PaginaInformacaoLoja = () => {
                 <button
                   className={estilos.itemLista}
                   onClick={() => item.caminho && navigate(item.caminho)}
-                  disabled={!item.caminho}
                 >
                   <Icone size={20} className={estilos.iconeItem} />
                   <span className={estilos.rotuloItem}>{item.rotulo}</span>
@@ -56,13 +56,23 @@ const PaginaInformacaoLoja = () => {
         </Cartao>
 
         <Cartao className={estilos.cartaoLista}>
-          <button className={estilos.itemLista} onClick={sair}>
-            <LogOut size={20} className={estilos.iconeItem} />
+          <button className={`${estilos.itemLista} ${estilos.itemSair}`} onClick={() => setModalSairAberto(true)}>
+            <LogOut size={20} className={estilos.iconeItemSair} />
             <span className={estilos.rotuloItem}>Sair da conta</span>
             <ChevronRight size={18} className={estilos.setaItem} />
           </button>
         </Cartao>
       </div>
+
+      <ModalConfirmacao
+        aberto={modalSairAberto}
+        titulo="Sair da conta"
+        mensagem="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar o painel."
+        textoBotaoConfirmar="Sair"
+        varianteBotaoConfirmar="perigo"
+        aoConfirmar={sair}
+        aoCancelar={() => setModalSairAberto(false)}
+      />
     </LayoutPagina>
   );
 };

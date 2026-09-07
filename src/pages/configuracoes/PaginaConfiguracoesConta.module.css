@@ -1,0 +1,97 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.secao {
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.secaoTitulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tituloSecao {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--nhac-texto);
+  margin: 0 0 16px;
+}
+
+.icone {
+  color: var(--nhac-primaria);
+  flex-shrink: 0;
+}
+
+.itemConta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+}
+
+.itemInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemRotulo {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--nhac-texto-claro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.itemValor {
+  font-size: 0.9375rem;
+  color: var(--nhac-texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemAcoes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.divisor {
+  height: 1px;
+  background: var(--nhac-borda);
+  margin: 0;
+}
+
+.listaToggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0 8px;
+}
+
+.listaToggles > :global(.toggle-wrapper),
+.listaToggles > div:not(.divisor) {
+  padding: 12px 0;
+}

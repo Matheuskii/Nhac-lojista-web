@@ -24,3 +24,5 @@ export * from './Avatar';
 
 export { default as IndicadorEtapas } from './IndicadorEtapas';
 export * from './IndicadorEtapas';
+
+export { default as ModalConfirmacao } from './ModalConfirmacao';
