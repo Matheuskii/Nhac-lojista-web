@@ -19,7 +19,10 @@ import PaginaListaPedidos from './pages/pedidos/PaginaListaPedidos';
 import PaginaDetalhePedido from './pages/pedidos/PaginaDetalhePedido';
 import PaginaInformacaoLoja from './pages/configuracoes/PaginaInformacaoLoja';
 import PaginaEditarInfoLoja from './pages/configuracoes/PaginaEditarInfoLoja';
-import PaginaTaxaEntrega from './pages/configuracoes/PaginaTaxaEntrega';
+import PaginaConfiguracoesConta from './pages/configuracoes/PaginaConfiguracoesConta';
+import PaginaEnderecoLoja from './pages/configuracoes/PaginaEnderecoLoja';
+import PaginaFormasPagamento from './pages/configuracoes/PaginaFormasPagamento';
+import PaginaRecuperarSenha from './pages/autenticacao/PaginaRecuperarSenha';
 
 function App() {
   return (
@@ -29,6 +32,7 @@ function App() {
           {/* Rotas públicas */}
           <Route path="/login" element={<PaginaLogin />} />
           <Route path="/cadastro" element={<PaginaCadastro />} />
+          <Route path="/recuperar-senha" element={<PaginaRecuperarSenha />} />
 
           {/* Rotas protegidas */}
           <Route
@@ -125,10 +129,26 @@ function App() {
             }
           />
           <Route
-            path="/configuracoes/taxa-entrega"
+            path="/configuracoes/conta"
             element={
               <RotaProtegida cargosPermitidos={['administrador']}>
-                <PaginaTaxaEntrega />
+                <PaginaConfiguracoesConta />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/configuracoes/endereco"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador']}>
+                <PaginaEnderecoLoja />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/configuracoes/pagamentos"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador']}>
+                <PaginaFormasPagamento />
               </RotaProtegida>
             }
           />

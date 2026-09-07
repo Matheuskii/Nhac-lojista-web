@@ -29,6 +29,8 @@ export interface Loja {
   entrega: DadosEntrega;
   horarios: HorarioDia[];
   formasPagamento: FormasPagamento;
+  notaMedia?: number;
+  totalAvaliacoes?: number;
 }
 
 export interface Endereco {
