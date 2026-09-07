@@ -38,4 +38,6 @@ export const lojaMock: Loja = {
     valeRefeicao: true,
     valeAlimentacao: false,
   },
-};
+  notaMedia: 4.7,
+  totalAvaliacoes: 328,
+};

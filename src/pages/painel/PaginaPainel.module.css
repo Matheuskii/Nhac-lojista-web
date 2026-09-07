@@ -6,6 +6,14 @@
 
 .cabecalho {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cabecalhoTexto {
+  display: flex;
   flex-direction: column;
   gap: 4px;
 }
@@ -22,9 +30,40 @@
   margin: 0;
 }
 
+.statusLoja {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--nhac-superficie);
+  padding: 8px 16px;
+  border-radius: var(--raio-pilula);
+  border: 1px solid var(--nhac-borda);
+}
+
+.statusTexto {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--nhac-texto);
+}
+
+.statusBolinha {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.statusBolinha.aberta {
+  background-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.statusBolinha.fechada {
+  background-color: #F44336;
+}
+
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -42,6 +81,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .kpiInfo {
@@ -62,10 +102,125 @@
   font-weight: 700;
 }
 
+.avaliacaoValor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.avaliacaoEstrelas {
+  font-size: 1rem;
+}
+
+.avaliacaoTotal {
+  font-size: 0.75rem;
+  color: var(--nhac-texto-claro);
+}
+
+.statusPedidosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.cartaoStatus {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  border-left-width: 4px;
+  border-left-style: solid;
+}
+
+.infoStatus {
+  display: flex;
+  flex-direction: column;
+}
+
+.valorStatus {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.rotuloStatus {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.statusAmarelo {
+  border-left-color: #FFC107;
+  background-color: rgba(255, 193, 7, 0.05);
+}
+.statusAmarelo .iconeStatus { color: #FFB300; }
+.statusAmarelo .valorStatus { color: #F57F17; }
+.statusAmarelo .rotuloStatus { color: #F57F17; }
+
+.statusAzul {
+  border-left-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.05);
+}
+.statusAzul .iconeStatus { color: #1E88E5; }
+.statusAzul .valorStatus { color: #1565C0; }
+.statusAzul .rotuloStatus { color: #1565C0; }
+
+.statusVerde {
+  border-left-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.05);
+}
+.statusVerde .iconeStatus { color: #43A047; }
+.statusVerde .valorStatus { color: #2E7D32; }
+.statusVerde .rotuloStatus { color: #2E7D32; }
+
 .duasColunas {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 24px;
+}
+
+.colunaEsquerda {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.graficoSecao {
+  display: flex;
+  flex-direction: column;
+}
+
+.cartaoGrafico {
+  padding: 24px;
+}
+
+.graficoHeader {
+  margin-bottom: 24px;
+}
+
+.graficoTitulos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graficoVariacao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #388E3C;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #E8F5E9;
+  padding: 4px 10px;
+  border-radius: var(--raio-pilula);
+  width: fit-content;
+}
+
+.areaGrafico {
+  margin-top: 16px;
 }
 
 .secaoCabecalho {
