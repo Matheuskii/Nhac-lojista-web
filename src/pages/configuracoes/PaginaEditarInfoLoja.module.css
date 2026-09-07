@@ -1,0 +1,90 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 560px;
+}
+
+.secao {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.linhaFoto {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.infoFoto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tituloFoto {
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.linkAlterarFoto {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--nhac-primaria);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.categorias {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rotuloCategorias {
+  color: var(--nhac-texto);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.tagsWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  padding: 8px 14px;
+  border-radius: var(--raio-pilula);
+  border: 1px solid var(--nhac-borda);
+  background-color: var(--nhac-fundo);
+  color: var(--nhac-texto);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transicao-rapida);
+}
+
+.tag:hover {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.tagSelecionada {
+  background-color: var(--nhac-primaria);
+  border-color: var(--nhac-primaria);
+  color: var(--nhac-texto-invertido);
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nhac-borda);
+}

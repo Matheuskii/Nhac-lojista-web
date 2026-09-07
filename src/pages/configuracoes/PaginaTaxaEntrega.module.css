@@ -1,0 +1,84 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 560px;
+}
+
+.secao {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity var(--transicao-rapida);
+}
+
+.desabilitado {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.rotuloGrupo {
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.modelos {
+  display: flex;
+  gap: 8px;
+}
+
+.modeloBotao {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--raio-cartao);
+  border: 1px solid var(--nhac-borda);
+  background-color: var(--nhac-superficie);
+  color: var(--nhac-texto);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transicao-rapida);
+}
+
+.modeloAtivo {
+  background-color: var(--nhac-primaria);
+  border-color: var(--nhac-primaria);
+  color: var(--nhac-texto-invertido);
+}
+
+.linhaToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: var(--nhac-fundo);
+  border-radius: var(--raio-cartao);
+}
+
+.tituloToggle {
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.legendaToggle {
+  margin: 2px 0 0 0;
+  color: var(--nhac-texto-claro);
+  font-size: 0.8125rem;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nhac-borda);
+}

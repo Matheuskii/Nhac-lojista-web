@@ -1,0 +1,90 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 520px;
+}
+
+.perfil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 0 8px;
+}
+
+.nomeLoja {
+  color: var(--nhac-texto);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 8px 0 0 0;
+}
+
+.categoriaLoja {
+  color: var(--nhac-texto-claro);
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.cartaoLista {
+  padding: 4px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.itemLista {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--nhac-texto);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.itemLista:disabled {
+  cursor: not-allowed;
+  color: var(--nhac-desabilitado);
+}
+
+.itemLista:disabled .iconeItem,
+.itemLista:disabled .setaItem {
+  color: var(--nhac-desabilitado);
+}
+
+.iconeItem {
+  color: var(--nhac-primaria);
+  flex-shrink: 0;
+}
+
+.rotuloItem {
+  flex: 1;
+}
+
+.setaItem {
+  color: var(--nhac-texto-sutil);
+  flex-shrink: 0;
+}
+
+.divisor {
+  height: 1px;
+  background-color: var(--nhac-borda);
+}
+
+/* Ajustes da Logo para caber inteira no círculo sem cortar */
+.perfil :global(.avatar) {
+  background-color: var(--nhac-fundo-suave, #f8f9fa);
+  border: 1px solid var(--nhac-borda, #e0e0e0);
+  overflow: hidden;
+}
+
+.perfil img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}

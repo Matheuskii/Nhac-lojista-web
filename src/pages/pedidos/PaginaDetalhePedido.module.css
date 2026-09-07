@@ -1,0 +1,233 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.botaoVoltar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--raio-pilula);
+  background-color: var(--nhac-superficie);
+  border: 1px solid var(--nhac-borda);
+  color: var(--nhac-texto);
+}
+
+.botaoVoltar:hover {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.titulo {
+  flex: 1;
+  color: var(--nhac-texto);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.emblemaTopo {
+  flex-shrink: 0;
+}
+
+.colunas {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.colunaPrincipal,
+.colunaLateral {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tituloSecao {
+  color: var(--nhac-texto-claro);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+.cartaoInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.linhaInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  color: var(--nhac-texto);
+}
+
+.iconeInfo {
+  color: var(--nhac-primaria);
+  flex-shrink: 0;
+}
+
+.divisor {
+  height: 1px;
+  background-color: var(--nhac-borda);
+  margin: 4px 0;
+}
+
+.linhaItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nomeItem {
+  color: var(--nhac-texto);
+  font-weight: 600;
+}
+
+.adicionaisItem {
+  color: var(--nhac-texto-claro);
+  font-size: 0.8125rem;
+}
+
+.precoItem {
+  color: var(--nhac-texto);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.observacoes {
+  padding: 10px 0;
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.linhaTotal {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+
+.cartaoAndamento {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mensagemCancelado {
+  color: var(--nhac-erro);
+  font-weight: 600;
+}
+
+.etapas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.etapa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.marcador {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: var(--nhac-desabilitado-fundo);
+  color: var(--nhac-texto-sutil);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.marcadorCompleto {
+  background-color: var(--nhac-sucesso);
+  color: #fff;
+}
+
+.marcadorAtivo {
+  background-color: var(--nhac-primaria);
+  color: #fff;
+}
+
+.rotuloEtapa {
+  color: var(--nhac-texto-claro);
+  font-size: 0.9375rem;
+}
+
+.rotuloEtapaAtivo {
+  color: var(--nhac-texto);
+  font-weight: 700;
+}
+
+.selecaoStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--nhac-borda);
+}
+
+.rotuloSelecao {
+  color: var(--nhac-texto);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.select {
+  padding: 10px 12px;
+  border-radius: var(--raio-medio);
+  border: 1px solid var(--nhac-borda);
+  background-color: var(--nhac-superficie);
+  color: var(--nhac-texto);
+  font-size: 0.9375rem;
+}
+
+.select:focus {
+  border-color: var(--nhac-borda-foco);
+}
+
+.naoEncontrado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 64px;
+  text-align: center;
+  color: var(--nhac-texto-claro);
+}
+
+@media (max-width: 900px) {
+  .colunas {
+    grid-template-columns: 1fr;
+  }
+}

@@ -5,7 +5,8 @@ import {
   Package, 
   MessageCircle, 
   Users, 
-  BarChart3 
+  BarChart3,
+  ClipboardList
 } from 'lucide-react';
 import { useAutenticacao } from '../../hooks/useAutenticacao';
 import { Cargo } from '../../types';
@@ -20,6 +21,7 @@ interface NavItem {
 
 const itensNavegacao: NavItem[] = [
   { rotulo: 'Painel', caminho: '/', icone: LayoutDashboard, cargos: ['administrador', 'gerente'] },
+  { rotulo: 'Pedidos', caminho: '/pedidos', icone: ClipboardList, cargos: ['administrador', 'gerente', 'atendente'] },
   { rotulo: 'Produtos', caminho: '/produtos', icone: Package, cargos: ['administrador', 'gerente'] },
   { rotulo: 'Chat', caminho: '/chat', icone: MessageCircle, cargos: ['administrador', 'gerente', 'atendente'] },
   { rotulo: 'Equipe', caminho: '/funcionarios', icone: Users, cargos: ['administrador'] },

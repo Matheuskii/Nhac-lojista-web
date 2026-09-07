@@ -15,6 +15,11 @@ import PaginaListaFuncionarios from './pages/funcionarios/PaginaListaFuncionario
 import PaginaFormularioFuncionario from './pages/funcionarios/PaginaFormularioFuncionario';
 import PaginaChat from './pages/chat/PaginaChat';
 import PaginaFinanceiro from './pages/financeiro/PaginaFinanceiro';
+import PaginaListaPedidos from './pages/pedidos/PaginaListaPedidos';
+import PaginaDetalhePedido from './pages/pedidos/PaginaDetalhePedido';
+import PaginaInformacaoLoja from './pages/configuracoes/PaginaInformacaoLoja';
+import PaginaEditarInfoLoja from './pages/configuracoes/PaginaEditarInfoLoja';
+import PaginaTaxaEntrega from './pages/configuracoes/PaginaTaxaEntrega';
 
 function App() {
   return (
@@ -82,6 +87,48 @@ function App() {
             element={
               <RotaProtegida cargosPermitidos={['administrador', 'gerente', 'atendente']}>
                 <PaginaChat />
+              </RotaProtegida>
+            }
+          />
+
+          <Route
+            path="/pedidos"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador', 'gerente', 'atendente']}>
+                <PaginaListaPedidos />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pedidos/:id"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador', 'gerente', 'atendente']}>
+                <PaginaDetalhePedido />
+              </RotaProtegida>
+            }
+          />
+
+          <Route
+            path="/configuracoes"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador']}>
+                <PaginaInformacaoLoja />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/configuracoes/editar"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador']}>
+                <PaginaEditarInfoLoja />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/configuracoes/taxa-entrega"
+            element={
+              <RotaProtegida cargosPermitidos={['administrador']}>
+                <PaginaTaxaEntrega />
               </RotaProtegida>
             }
           />

@@ -1,0 +1,132 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.titulo {
+  color: var(--nhac-texto);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.botaoSino {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-pilula);
+  background-color: var(--nhac-superficie);
+  color: var(--nhac-texto);
+  border: 1px solid var(--nhac-borda);
+}
+
+.botaoSino:hover {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filtroTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--raio-pilula);
+  background-color: var(--nhac-superficie);
+  border: 1px solid var(--nhac-borda);
+  color: var(--nhac-texto);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all var(--transicao-rapida);
+}
+
+.filtroTag:hover {
+  background-color: var(--nhac-primaria-fundo);
+}
+
+.filtroAtivo {
+  background-color: var(--nhac-primaria);
+  border-color: var(--nhac-primaria);
+  color: var(--nhac-texto-invertido);
+}
+
+.filtroContagem {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-radius: var(--raio-pilula);
+  padding: 1px 7px;
+  font-size: 0.75rem;
+}
+
+.filtroAtivo .filtroContagem {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.vazio {
+  padding: 48px;
+  text-align: center;
+  color: var(--nhac-texto-claro);
+  background-color: var(--nhac-superficie);
+  border-radius: var(--raio-cartao);
+  border: 1px dashed var(--nhac-borda);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cartaoPedido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.infoPrincipal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.linhaTopo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codigo {
+  color: var(--nhac-texto);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.cliente {
+  color: var(--nhac-texto);
+  font-weight: 600;
+}
+
+.detalhe {
+  color: var(--nhac-texto-claro);
+  font-size: 0.875rem;
+}
+
+.seta {
+  color: var(--nhac-texto-sutil);
+  flex-shrink: 0;
+}
