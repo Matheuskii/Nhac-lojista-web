@@ -74,10 +74,17 @@
 
 .acoes {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--nhac-borda);
+}
+
+.acoesDir {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
 }
 
 .vazio {

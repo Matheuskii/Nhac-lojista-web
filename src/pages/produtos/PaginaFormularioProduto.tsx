@@ -6,6 +6,7 @@ import Seletor from '../../components/ui/Seletor';
 import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Toggle from '../../components/ui/Toggle';
+import ModalConfirmacao from '../../components/ui/ModalConfirmacao';
 import { produtosMock } from '../../dados/produtos';
 import { CATEGORIAS_PRODUTO } from '../../dados/categorias';
 import { Upload, Trash2, Plus } from 'lucide-react';
@@ -22,6 +23,7 @@ const PaginaFormularioProduto = () => {
   const [categoria, setCategoria] = useState('');
   const [ativo, setAtivo] = useState(true);
   const [adicionais, setAdicionais] = useState<any[]>([]);
+  const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
 
   useEffect(() => {
     if (ehEdicao) {
@@ -44,6 +46,10 @@ const PaginaFormularioProduto = () => {
   const handleSalvar = (e: React.FormEvent) => {
     e.preventDefault();
     alert('Produto salvo com sucesso!');
+    navigate('/produtos');
+  };
+
+  const handleExcluir = () => {
     navigate('/produtos');
   };
 
@@ -112,10 +118,32 @@ const PaginaFormularioProduto = () => {
         </div>
 
         <div className={estilos.acoes}>
-          <Botao type="button" variante="fantasma" onClick={() => navigate('/produtos')}>Cancelar</Botao>
-          <Botao type="submit" variante="primario">Salvar Produto</Botao>
+          {ehEdicao && (
+            <Botao
+              type="button"
+              variante="perigo"
+              icone={<Trash2 size={16} />}
+              onClick={() => setModalExcluirAberto(true)}
+            >
+              Excluir produto
+            </Botao>
+          )}
+          <div className={estilos.acoesDir}>
+            <Botao type="button" variante="fantasma" onClick={() => navigate('/produtos')}>Cancelar</Botao>
+            <Botao type="submit" variante="primario">Salvar Produto</Botao>
+          </div>
         </div>
       </form>
+
+      <ModalConfirmacao
+        aberto={modalExcluirAberto}
+        titulo="Excluir produto"
+        mensagem={`Tem certeza que deseja excluir "${nome}"? Essa ação não pode ser desfeita.`}
+        textoBotaoConfirmar="Excluir"
+        varianteBotaoConfirmar="perigo"
+        aoConfirmar={handleExcluir}
+        aoCancelar={() => setModalExcluirAberto(false)}
+      />
     </LayoutPagina>
   );
 };
