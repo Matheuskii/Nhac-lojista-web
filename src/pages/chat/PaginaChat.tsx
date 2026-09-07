@@ -2,11 +2,19 @@ import React, { useState } from 'react';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Avatar from '../../components/ui/Avatar';
 import Botao from '../../components/ui/Botao';
-import InputTexto from '../../components/ui/InputTexto';
 import { conversasMock } from '../../dados/conversas';
-import { formatarData } from '../../utils/formatacao';
-import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
+import { pedidosMock } from '../../dados/pedidos';
+import { formatarData, formatarMoeda } from '../../utils/formatacao';
+import { Send, ArrowLeft, MessageSquare, Receipt } from 'lucide-react';
 import estilos from './PaginaChat.module.css';
+
+const MENSAGENS_PRE_PRONTAS = [
+  "Pedido confirmado! ✅",
+  "Seu pedido está sendo preparado 🍳",
+  "Seu pedido saiu para entrega 🚗",
+  "Infelizmente não temos esse item disponível",
+  "Obrigado pela preferência! ⭐"
+];
 
 const PaginaChat = () => {
   const [conversas, setConversas] = useState(conversasMock);
@@ -14,15 +22,15 @@ const PaginaChat = () => {
   const [novaMensagem, setNovaMensagem] = useState('');
 
   const conversaAtiva = conversas.find(c => c.id === conversaAtivaId);
+  const pedidoAtivo = conversaAtiva ? pedidosMock.find(p => p.id === conversaAtiva.pedidoId) : null;
 
   const handleSelecionarConversa = (id: string) => {
     setConversaAtivaId(id);
-    // Mark as read
     setConversas(conversas.map(c => c.id === id ? { ...c, naoLidas: 0 } : c));
   };
 
-  const handleEnviar = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEnviar = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!novaMensagem.trim() || !conversaAtiva) return;
 
     const nova = {
@@ -41,6 +49,10 @@ const PaginaChat = () => {
         : c
     ));
     setNovaMensagem('');
+  };
+
+  const usarMensagemRapida = (texto: string) => {
+    setNovaMensagem(texto);
   };
 
   return (
@@ -85,27 +97,67 @@ const PaginaChat = () => {
                 </div>
               </header>
 
-              <div className={estilos.mensagens}>
-                {conversaAtiva.mensagens.map(msg => (
-                  <div key={msg.id} className={`${estilos.mensagemWrapper} ${msg.ehLoja ? estilos.minhaMensagem : estilos.mensagemCliente}`}>
-                    <div className={estilos.balao}>
-                      {msg.conteudo}
+              <div className={estilos.mensagensContainer}>
+                <div className={estilos.mensagens}>
+                  {pedidoAtivo && (
+                    <div className={estilos.cardPedidoWrapper}>
+                      <div className={estilos.cardPedido}>
+                        <div className={estilos.cardPedidoHeader}>
+                          <Receipt size={16} />
+                          <span>Referência do Pedido</span>
+                        </div>
+                        <div className={estilos.cardPedidoContent}>
+                          <div className={estilos.cardPedidoRow}>
+                            <span className={estilos.cardPedidoLabel}>Pedido:</span>
+                            <span className={estilos.cardPedidoValue}>#{pedidoAtivo.numeroPedido}</span>
+                          </div>
+                          <div className={estilos.cardPedidoRow}>
+                            <span className={estilos.cardPedidoLabel}>Status:</span>
+                            <span className={estilos.cardPedidoValue} style={{textTransform: 'capitalize'}}>{pedidoAtivo.status.replace('_', ' ')}</span>
+                          </div>
+                          <div className={estilos.cardPedidoRow}>
+                            <span className={estilos.cardPedidoLabel}>Total:</span>
+                            <span className={estilos.cardPedidoValue}>{formatarMoeda(pedidoAtivo.valorTotal)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <span className={estilos.hora}>{formatarData(msg.dataEnvio)}</span>
-                  </div>
-                ))}
+                  )}
+                  
+                  {conversaAtiva.mensagens.map(msg => (
+                    <div key={msg.id} className={`${estilos.mensagemWrapper} ${msg.ehLoja ? estilos.minhaMensagem : estilos.mensagemCliente}`}>
+                      <div className={estilos.balao}>
+                        {msg.conteudo}
+                      </div>
+                      <span className={estilos.hora}>{formatarData(msg.dataEnvio)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <form className={estilos.formEnvio} onSubmit={handleEnviar}>
-                <input 
-                  type="text" 
-                  className={estilos.inputMensagem} 
-                  value={novaMensagem} 
-                  onChange={(e) => setNovaMensagem(e.target.value)} 
-                  placeholder="Digite sua mensagem..." 
-                />
-                <Botao type="submit" icone={<Send size={20} />} disabled={!novaMensagem.trim()} />
-              </form>
+              <div className={estilos.areaEnvio}>
+                <div className={estilos.mensagensRapidas}>
+                  {MENSAGENS_PRE_PRONTAS.map((msg, idx) => (
+                    <button 
+                      key={idx} 
+                      className={estilos.btnMensagemRapida}
+                      onClick={() => usarMensagemRapida(msg)}
+                    >
+                      {msg}
+                    </button>
+                  ))}
+                </div>
+                <form className={estilos.formEnvio} onSubmit={handleEnviar}>
+                  <input 
+                    type="text" 
+                    className={estilos.inputMensagem} 
+                    value={novaMensagem} 
+                    onChange={(e) => setNovaMensagem(e.target.value)} 
+                    placeholder="Digite sua mensagem..." 
+                  />
+                  <Botao type="submit" icone={<Send size={20} />} disabled={!novaMensagem.trim()} />
+                </form>
+              </div>
             </>
           ) : (
             <div className={estilos.estadoVazio}>
