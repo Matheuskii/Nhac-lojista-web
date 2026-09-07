@@ -1,0 +1,139 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--nhac-fundo);
+}
+
+.cartao {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabecalho {
+  text-align: center;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--nhac-primaria);
+  margin: 0;
+}
+
+.subtituloCabecalho {
+  font-size: 0.875rem;
+  color: var(--nhac-texto-claro);
+  margin: 2px 0 0;
+}
+
+.corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.titulo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--nhac-texto);
+  margin: 0;
+}
+
+.subtitulo {
+  font-size: 0.9rem;
+  color: var(--nhac-texto-claro);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.inputCodigo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campoCodigo {
+  width: 100%;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.5em;
+  border: 2px solid var(--nhac-borda);
+  border-radius: var(--raio-medio);
+  padding: 14px;
+  color: var(--nhac-texto);
+  background: var(--nhac-superficie);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.campoCodigo:focus {
+  border-color: var(--nhac-primaria);
+}
+
+.erro {
+  font-size: 0.8125rem;
+  color: var(--nhac-erro);
+}
+
+.linkReenviar {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--nhac-primaria);
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+  font-family: inherit;
+}
+
+.linkReenviar:hover {
+  text-decoration: underline;
+}
+
+.rodape {
+  display: flex;
+  justify-content: center;
+}
+
+.linkVoltar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--nhac-texto-claro);
+  text-decoration: none;
+}
+
+.linkVoltar:hover {
+  color: var(--nhac-primaria);
+}
+
+.sucessoWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.circuloSucesso {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--nhac-primaria-fundo);
+  color: var(--nhac-primaria);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

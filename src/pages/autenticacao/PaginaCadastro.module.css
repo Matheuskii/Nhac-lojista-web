@@ -266,3 +266,120 @@
   justify-content: center;
   color: var(--nhac-primaria);
 }
+
+/* ETAPA 1 - Confirmação de Email */
+.confirmacaoHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.confirmacaoIcone {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--nhac-primaria-fundo);
+  color: var(--nhac-primaria);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmacaoTitulo {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--nhac-texto);
+}
+
+.confirmacaoDescricao {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--nhac-texto-claro);
+  line-height: 1.5;
+}
+
+.inputCodigoWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.campoCodigo {
+  width: 100%;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.5em;
+  border: 2px solid var(--nhac-borda);
+  border-radius: var(--raio-medio);
+  padding: 14px;
+  color: var(--nhac-texto);
+  background: var(--nhac-superficie);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.campoCodigo:focus {
+  border-color: var(--nhac-primaria);
+}
+
+.linkReenviar {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--nhac-primaria);
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+  font-family: inherit;
+  margin-top: 8px;
+}
+
+.linkReenviar:hover {
+  text-decoration: underline;
+}
+
+/* ETAPA 7 - Revisão */
+.revisaoSecao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--nhac-borda);
+}
+
+.revisaoSecao:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.revisaoTitulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--nhac-texto);
+}
+
+.revisaoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.revisaoItem span {
+  font-size: 0.8125rem;
+  color: var(--nhac-texto-claro);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.revisaoItem strong {
+  font-size: 0.9375rem;
+  color: var(--nhac-texto);
+  font-weight: 500;
+}

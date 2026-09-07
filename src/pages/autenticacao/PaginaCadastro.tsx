@@ -12,11 +12,13 @@ import { CATEGORIAS_LOJA } from '../../dados/categorias';
 
 const ETAPAS = [
   'Dados Pessoais',
+  'Confirmação',
   'Dados da Loja',
   'Endereço',
   'Entrega',
   'Horários',
-  'Pagamento'
+  'Pagamento',
+  'Revisão'
 ];
 
 const DIAS_SEMANA = [
@@ -36,7 +38,7 @@ export default function PaginaCadastro() {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [cadastroConcluido, setCadastroConcluido] = useState(false);
 
-  // Etapa 1
+  // Etapa 0 — Dados Pessoais
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -45,14 +47,18 @@ export default function PaginaCadastro() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
 
-  // Etapa 2
+  // Etapa 1 — Confirmação de e-mail
+  const [codigoEmail, setCodigoEmail] = useState('');
+  const [reenviadoCodigo, setReenviadoCodigo] = useState(false);
+
+  // Etapa 2 — Dados da Loja
   const [fotoUrl, setFotoUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [nomeLoja, setNomeLoja] = useState('');
   const [descricaoLoja, setDescricaoLoja] = useState('');
   const [categoriaLoja, setCategoriaLoja] = useState('');
 
-  // Etapa 3
+  // Etapa 3 — Endereço
   const [cep, setCep] = useState('');
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
@@ -62,13 +68,13 @@ export default function PaginaCadastro() {
   const [uf, setUf] = useState('');
   const [buscandoCep, setBuscandoCep] = useState(false);
 
-  // Etapa 4
+  // Etapa 4 — Entrega
   const [entregaPropria, setEntregaPropria] = useState(true);
   const [retiradaNoLocal, setRetiradaNoLocal] = useState(true);
   const [raioEntregaKm, setRaioEntregaKm] = useState('5');
   const [taxaEntregaReais, setTaxaEntregaReais] = useState('5.00');
 
-  // Etapa 5
+  // Etapa 5 — Horários
   const [horarios, setHorarios] = useState(
     DIAS_SEMANA.map(dia => ({
       ...dia,
@@ -78,7 +84,7 @@ export default function PaginaCadastro() {
     }))
   );
 
-  // Etapa 6
+  // Etapa 6 — Pagamento
   const [pagamentos, setPagamentos] = useState({
     dinheiro: false,
     credito: false,
@@ -88,23 +94,30 @@ export default function PaginaCadastro() {
     alimentacao: false
   });
 
-  const validarEtapa1 = () => {
+  const validarEtapa0 = () => {
     const novosErros: Record<string, string> = {};
     if (!nomeCompleto) novosErros.nomeCompleto = 'Nome é obrigatório';
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) novosErros.email = 'E-mail inválido';
     if (!telefone) novosErros.telefone = 'Telefone é obrigatório';
     if (senha.length < 6) novosErros.senha = 'A senha deve ter pelo menos 6 caracteres';
     if (senha !== confirmarSenha) novosErros.confirmarSenha = 'As senhas não coincidem';
-    
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
+  };
+
+  const validarEtapa1 = () => {
+    if (codigoEmail.length < 6) {
+      setErros({ codigoEmail: 'Digite o código de 6 dígitos' });
+      return false;
+    }
+    setErros({});
+    return true;
   };
 
   const validarEtapa2 = () => {
     const novosErros: Record<string, string> = {};
     if (!nomeLoja) novosErros.nomeLoja = 'Nome da loja é obrigatório';
     if (!categoriaLoja) novosErros.categoriaLoja = 'Selecione uma categoria';
-    
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
   };
@@ -117,17 +130,8 @@ export default function PaginaCadastro() {
     if (!bairro) novosErros.bairro = 'Bairro é obrigatório';
     if (!cidade) novosErros.cidade = 'Cidade é obrigatória';
     if (!uf) novosErros.uf = 'UF é obrigatório';
-    
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
-  };
-
-  const validarEtapa4 = () => {
-    return true;
-  };
-
-  const validarEtapa5 = () => {
-    return true;
   };
 
   const validarEtapa6 = () => {
@@ -142,11 +146,13 @@ export default function PaginaCadastro() {
 
   const avancar = () => {
     let valido = false;
-    if (etapaAtual === 0) valido = validarEtapa1();
-    else if (etapaAtual === 1) valido = validarEtapa2();
-    else if (etapaAtual === 2) valido = validarEtapa3();
-    else if (etapaAtual === 3) valido = validarEtapa4();
-    else if (etapaAtual === 4) valido = validarEtapa5();
+    if (etapaAtual === 0) valido = validarEtapa0();
+    else if (etapaAtual === 1) valido = validarEtapa1();
+    else if (etapaAtual === 2) valido = validarEtapa2();
+    else if (etapaAtual === 3) valido = validarEtapa3();
+    else if (etapaAtual === 4) valido = true;
+    else if (etapaAtual === 5) valido = true;
+    else if (etapaAtual === 6) valido = validarEtapa6();
 
     if (valido) {
       setEtapaAtual(prev => Math.min(prev + 1, ETAPAS.length - 1));
@@ -160,9 +166,7 @@ export default function PaginaCadastro() {
   };
 
   const finalizar = () => {
-    if (validarEtapa6()) {
-      setCadastroConcluido(true);
-    }
+    setCadastroConcluido(true);
   };
 
   const lidarComArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,6 +210,11 @@ export default function PaginaCadastro() {
     setPagamentos(prev => ({ ...prev, [chave]: !prev[chave] }));
   };
 
+  const pagamentosSelecionados = Object.entries(pagamentos)
+    .filter(([, v]) => v)
+    .map(([k]) => ({ dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito', pix: 'Pix', refeicao: 'Vale-refeição', alimentacao: 'Vale-alimentação' }[k]))
+    .join(', ');
+
   return (
     <div className={estilos.container}>
       <div className={estilos.conteudo}>
@@ -217,7 +226,7 @@ export default function PaginaCadastro() {
         <IndicadorEtapas etapas={ETAPAS} etapaAtual={etapaAtual} />
 
         <Cartao className={estilos.cartao}>
-          {/* ETAPA 1 */}
+          {/* ETAPA 0 — Dados Pessoais */}
           {etapaAtual === 0 && (
             <div className={estilos.grid}>
               <InputTexto
@@ -284,8 +293,41 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 2 */}
+          {/* ETAPA 1 — Confirmação de E-mail */}
           {etapaAtual === 1 && (
+            <div className={estilos.grid}>
+              <div className={estilos.confirmacaoHeader}>
+                <div className={estilos.confirmacaoIcone}>
+                  <Mail size={32} />
+                </div>
+                <h3 className={estilos.confirmacaoTitulo}>Confirme seu e-mail</h3>
+                <p className={estilos.confirmacaoDescricao}>
+                  Enviamos um código de 6 dígitos para <strong>{email}</strong>. Verifique sua caixa de entrada e insira o código abaixo.
+                </p>
+              </div>
+              <div className={estilos.inputCodigoWrapper}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  className={estilos.campoCodigo}
+                  value={codigoEmail}
+                  onChange={(e) => setCodigoEmail(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                />
+                {erros.codigoEmail && <span className={estilos.erro}>{erros.codigoEmail}</span>}
+              </div>
+              <button
+                type="button"
+                className={estilos.linkReenviar}
+                onClick={() => setReenviadoCodigo(true)}
+              >
+                {reenviadoCodigo ? '✓ Código reenviado!' : 'Reenviar código'}
+              </button>
+            </div>
+          )}
+
+          {/* ETAPA 2 — Dados da Loja */}
+          {etapaAtual === 2 && (
             <div className={estilos.grid}>
               <div>
                 <span className={estilos.rotuloTextarea}>Logo da Loja</span>
@@ -341,8 +383,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 3 */}
-          {etapaAtual === 2 && (
+          {/* ETAPA 3 — Endereço */}
+          {etapaAtual === 3 && (
             <div className={estilos.grid}>
               <InputTexto
                 rotulo="CEP"
@@ -359,45 +401,17 @@ export default function PaginaCadastro() {
               {buscandoCep && <span style={{ fontSize: '0.8rem', color: 'var(--nhac-primaria)' }}>Buscando endereço...</span>}
               
               <div className={`${estilos.grid} ${estilos.grid2}`}>
-                <InputTexto
-                  rotulo="Rua"
-                  valor={rua}
-                  aoMudar={setRua}
-                  erro={erros.rua}
-                  obrigatorio
-                />
-                <InputTexto
-                  rotulo="Número"
-                  valor={numero}
-                  aoMudar={setNumero}
-                  erro={erros.numero}
-                  obrigatorio
-                />
+                <InputTexto rotulo="Rua" valor={rua} aoMudar={setRua} erro={erros.rua} obrigatorio />
+                <InputTexto rotulo="Número" valor={numero} aoMudar={setNumero} erro={erros.numero} obrigatorio />
               </div>
 
               <div className={`${estilos.grid} ${estilos.grid2}`}>
-                <InputTexto
-                  rotulo="Complemento"
-                  valor={complemento}
-                  aoMudar={setComplemento}
-                />
-                <InputTexto
-                  rotulo="Bairro"
-                  valor={bairro}
-                  aoMudar={setBairro}
-                  erro={erros.bairro}
-                  obrigatorio
-                />
+                <InputTexto rotulo="Complemento" valor={complemento} aoMudar={setComplemento} />
+                <InputTexto rotulo="Bairro" valor={bairro} aoMudar={setBairro} erro={erros.bairro} obrigatorio />
               </div>
 
               <div className={`${estilos.grid} ${estilos.grid2}`}>
-                <InputTexto
-                  rotulo="Cidade"
-                  valor={cidade}
-                  aoMudar={setCidade}
-                  erro={erros.cidade}
-                  obrigatorio
-                />
+                <InputTexto rotulo="Cidade" valor={cidade} aoMudar={setCidade} erro={erros.cidade} obrigatorio />
                 <Seletor
                   rotulo="Estado (UF)"
                   opcoes={ESTADOS_BRASILEIROS.map(uf => ({ valor: uf, rotulo: uf }))}
@@ -410,8 +424,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 4 */}
-          {etapaAtual === 3 && (
+          {/* ETAPA 4 — Entrega */}
+          {etapaAtual === 4 && (
             <div className={estilos.grid}>
               <Toggle
                 rotulo="Oferece entrega própria?"
@@ -443,8 +457,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 5 */}
-          {etapaAtual === 4 && (
+          {/* ETAPA 5 — Horários */}
+          {etapaAtual === 5 && (
             <div className={estilos.listaHorarios}>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
                 Configure os horários de funcionamento da sua loja.
@@ -492,8 +506,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 6 */}
-          {etapaAtual === 5 && (
+          {/* ETAPA 6 — Pagamento */}
+          {etapaAtual === 6 && (
             <div className={estilos.grid}>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
                 Quais formas de pagamento você aceita?
@@ -571,7 +585,67 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* NAVEGAÇÃO BOTTOM */}
+          {/* ETAPA 7 — Revisão */}
+          {etapaAtual === 7 && (
+            <div className={estilos.grid}>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
+                Revise suas informações antes de finalizar o cadastro.
+              </p>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Dados Pessoais</h4>
+                <div className={estilos.revisaoItem}><span>Nome</span><strong>{nomeCompleto}</strong></div>
+                <div className={estilos.revisaoItem}><span>E-mail</span><strong>{email}</strong></div>
+                <div className={estilos.revisaoItem}><span>Telefone</span><strong>{telefone}</strong></div>
+              </div>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Dados da Loja</h4>
+                <div className={estilos.revisaoItem}><span>Nome</span><strong>{nomeLoja || '—'}</strong></div>
+                <div className={estilos.revisaoItem}><span>Categoria</span><strong>{categoriaLoja || '—'}</strong></div>
+                {descricaoLoja && <div className={estilos.revisaoItem}><span>Descrição</span><strong>{descricaoLoja}</strong></div>}
+              </div>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Endereço</h4>
+                <div className={estilos.revisaoItem}><span>CEP</span><strong>{cep || '—'}</strong></div>
+                <div className={estilos.revisaoItem}><span>Endereço</span><strong>{rua}{numero ? `, ${numero}` : ''}{complemento ? ` - ${complemento}` : ''}</strong></div>
+                <div className={estilos.revisaoItem}><span>Bairro/Cidade</span><strong>{bairro}{cidade ? ` — ${cidade}/${uf}` : ''}</strong></div>
+              </div>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Entrega</h4>
+                <div className={estilos.revisaoItem}><span>Entrega própria</span><strong>{entregaPropria ? `Sim (${raioEntregaKm} km, R$ ${taxaEntregaReais})` : 'Não'}</strong></div>
+                <div className={estilos.revisaoItem}><span>Retirada no local</span><strong>{retiradaNoLocal ? 'Sim' : 'Não'}</strong></div>
+              </div>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Horários</h4>
+                {horarios.filter(d => d.aberto).map(d => (
+                  <div key={d.id} className={estilos.revisaoItem}>
+                    <span>{d.nome}</span>
+                    <strong>{d.abertura} às {d.fechamento}</strong>
+                  </div>
+                ))}
+                {horarios.filter(d => !d.aberto).length > 0 && (
+                  <div className={estilos.revisaoItem}>
+                    <span>Fechado</span>
+                    <strong>{horarios.filter(d => !d.aberto).map(d => d.nome).join(', ')}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div className={estilos.revisaoSecao}>
+                <h4 className={estilos.revisaoTitulo}>Formas de Pagamento</h4>
+                <div className={estilos.revisaoItem}>
+                  <span>Aceitas</span>
+                  <strong>{pagamentosSelecionados || '—'}</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* NAVEGAÇÃO */}
           <div className={estilos.acoes}>
             {etapaAtual > 0 ? (
               <Botao type="button" variante="secundario" onClick={voltar}>
@@ -587,7 +661,7 @@ export default function PaginaCadastro() {
               </Botao>
             ) : (
               <Botao type="button" variante="primario" onClick={finalizar}>
-                Finalizar cadastro
+                Confirmar e Finalizar
               </Botao>
             )}
           </div>

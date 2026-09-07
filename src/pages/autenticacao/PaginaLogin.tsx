@@ -82,7 +82,7 @@ export default function PaginaLogin() {
           </div>
 
           <div className={estilos.opcoes}>
-            <button type="button" className={estilos.link}>Esqueci minha senha</button>
+            <Link to="/recuperar-senha" className={estilos.link}>Esqueci minha senha</Link>
           </div>
 
           <Botao 
