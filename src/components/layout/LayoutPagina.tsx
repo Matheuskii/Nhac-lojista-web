@@ -11,12 +11,15 @@ interface LayoutPaginaProps {
 
 const LayoutPagina: React.FC<LayoutPaginaProps> = ({ titulo, children }) => {
   const [menuAberto, setMenuAberto] = useState(false);
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
 
   return (
     <div className={estilos.layout}>
       <BarraLateral 
         abertaMobile={menuAberto} 
-        onFechar={() => setMenuAberto(false)} 
+        onFechar={() => setMenuAberto(false)}
+        recolhida={sidebarRecolhida}
+        onToggleRecolher={() => setSidebarRecolhida(v => !v)}
       />
       
       {menuAberto && (
@@ -26,10 +29,14 @@ const LayoutPagina: React.FC<LayoutPaginaProps> = ({ titulo, children }) => {
         />
       )}
       
-      <div className={estilos.conteudoPrincipal}>
+      <div className={`${estilos.conteudoPrincipal} ${sidebarRecolhida ? estilos.conteudoPrincipalRecolhido : ''}`}>
         <BarraSuperior 
           titulo={titulo} 
-          onAbrirMenu={() => setMenuAberto(true)} 
+          onAbrirMenu={() => {
+            setMenuAberto(true);
+            setSidebarRecolhida(false);
+          }} 
+          recolhida={sidebarRecolhida}
         />
         
         <main className={estilos.main}>

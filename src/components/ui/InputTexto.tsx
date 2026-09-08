@@ -38,9 +38,14 @@ const InputTexto = ({
     aoMudar(novoValor);
   };
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <div className={`${estilos.container} ${disabled ? estilos.desabilitado : ''}`}>
-      <div className={`${estilos.inputWrapper} ${focado ? estilos.focado : ''} ${erro ? estilos.comErro : ''}`}>
+      <div 
+        className={`${estilos.inputWrapper} ${focado ? estilos.focado : ''} ${erro ? estilos.comErro : ''}`}
+        onClick={() => inputRef.current?.focus()}
+      >
         {icone && <div className={estilos.icone}>{icone}</div>}
         
         <div className={estilos.campo}>
@@ -51,6 +56,7 @@ const InputTexto = ({
           )}
           
           <input
+            ref={inputRef}
             type={tipoFinal}
             value={valor}
             onChange={lidarComMudanca}

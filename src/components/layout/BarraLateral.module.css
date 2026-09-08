@@ -9,14 +9,22 @@
   flex-direction: column;
   border-right: 1px solid var(--nhac-borda);
   z-index: 100;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease;
+  overflow: hidden;
+}
+
+/* Estado recolhido — desktop */
+.recolhida {
+  width: 0;
+  border-right: none;
 }
 
 .cabecalho {
-  padding: 24px;
+  padding: 24px 20px 24px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -24,15 +32,51 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.acoesCabecalho {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.botaoRecolher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--nhac-texto-claro);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--raio-pequeno);
+  transition: all 0.2s;
+}
+
+.botaoRecolher:hover {
+  background-color: var(--nhac-fundo);
+  color: var(--nhac-texto);
 }
 
 .botaoFechar {
   display: none;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  font-size: 24px;
-  color: var(--nhac-texto);
+  color: var(--nhac-texto-claro);
   cursor: pointer;
+  padding: 6px;
+  border-radius: var(--raio-pequeno);
+  transition: all 0.2s;
+}
+
+.botaoFechar:hover {
+  background-color: var(--nhac-fundo);
+  color: var(--nhac-texto);
 }
 
 .navegacao {
@@ -42,6 +86,7 @@
   gap: 8px;
   padding: 0 16px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .link {
@@ -54,6 +99,7 @@
   font-weight: 500;
   border-radius: var(--raio-pilula);
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .link:hover {
@@ -66,9 +112,16 @@
   color: var(--nhac-superficie);
 }
 
+.rotuloLink {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .rodape {
   padding: 16px;
   border-top: 1px solid var(--nhac-borda);
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .perfil {
@@ -76,6 +129,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -123,13 +177,19 @@
 @media (max-width: 1024px) {
   .barraLateral {
     transform: translateX(-100%);
+    width: 260px; /* reset para mobile */
   }
   
   .barraLateral.aberta {
     transform: translateX(0);
   }
 
+  /* No mobile, o botão de recolher não faz sentido */
+  .botaoRecolher {
+    display: none;
+  }
+
   .botaoFechar {
-    display: block;
+    display: flex;
   }
 }
