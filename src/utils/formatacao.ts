@@ -138,18 +138,18 @@ export function mascaraMoeda(valor: string): string {
  * Rótulo em português e variante de Emblema para cada status de pedido.
  */
 export const STATUS_PEDIDO_INFO: Record<string, { rotulo: string; variante: 'sucesso' | 'erro' | 'aviso' | 'info' | 'neutro' }> = {
-  pendente: { rotulo: 'Confirmar', variante: 'aviso' },
-  aceito: { rotulo: 'Aceito', variante: 'info' },
-  preparando: { rotulo: 'Em preparo', variante: 'info' },
-  saiu_entrega: { rotulo: 'A caminho', variante: 'info' },
-  entregue: { rotulo: 'Entregue', variante: 'sucesso' },
-  cancelado: { rotulo: 'Cancelado', variante: 'erro' },
+  PENDENTE: { rotulo: 'Confirmar', variante: 'aviso' },
+  PAGO: { rotulo: 'Pago', variante: 'info' },
+  PREPARANDO: { rotulo: 'Em preparo', variante: 'info' },
+  SAIU_ENTREGA: { rotulo: 'A caminho', variante: 'info' },
+  ENTREGUE: { rotulo: 'Entregue', variante: 'sucesso' },
+  CANCELADO: { rotulo: 'Cancelado', variante: 'erro' },
 };
 
 /**
  * Ordem cronológica do fluxo normal de um pedido (sem contar cancelamento).
  */
-export const FLUXO_STATUS_PEDIDO = ['pendente', 'aceito', 'preparando', 'saiu_entrega', 'entregue'] as const;
+export const FLUXO_STATUS_PEDIDO = ['PENDENTE', 'PAGO', 'PREPARANDO', 'SAIU_ENTREGA', 'ENTREGUE'] as const;
 
 /**
  * Lista dos estados brasileiros (siglas).

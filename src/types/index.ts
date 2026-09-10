@@ -137,7 +137,7 @@ export interface Funcionario {
 
 // ==================== Pedidos ====================
 
-export type StatusPedido = 'pendente' | 'aceito' | 'preparando' | 'saiu_entrega' | 'entregue' | 'cancelado';
+export type StatusPedido = 'PENDENTE' | 'PAGO' | 'PREPARANDO' | 'SAIU_ENTREGA' | 'ENTREGUE' | 'CANCELADO';
 
 export interface ItemPedido {
   produtoId: string;

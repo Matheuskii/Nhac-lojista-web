@@ -19,10 +19,10 @@ function converterUsuarioApi(usuarioApi: LoginResponseDTO, token: string): Usuar
   return {
     id: usuarioApi.usuarioId,
     nomeCompleto: usuarioApi.nome,
-    email: '', // O backend não retorna email no login, teríamos que buscar separadamente
+    email: '', 
     telefone: '',
     cargo: usuarioApi.papel as Cargo || 'administrador',
-    lojaId: '', // Será preenchido quando buscarmos os dados da loja
+    lojaId: '',
   };
 }
 

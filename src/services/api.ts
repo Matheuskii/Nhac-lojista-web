@@ -144,21 +144,23 @@ export interface EnderecoLojaDTO {
   complemento?: string;
   bairro: string;
   cidade: string;
-  uf: string;
+  estado: string;
 }
 
 export interface HorariosDTO {
-  segunda: { aberto: boolean; abertura?: string; fechamento?: string };
-  terca: { aberto: boolean; abertura?: string; fechamento?: string };
-  quarta: { aberto: boolean; abertura?: string; fechamento?: string };
-  quinta: { aberto: boolean; abertura?: string; fechamento?: string };
-  sexta: { aberto: boolean; abertura?: string; fechamento?: string };
-  sabado: { aberto: boolean; abertura?: string; fechamento?: string };
-  domingo: { aberto: boolean; abertura?: string; fechamento?: string };
+  segunda: string;
+  terca: string;
+  quarta: string;
+  quinta: string;
+  sexta: string;
+  sabado: string;
+  domingo: string;
 }
 
 export interface DadosOperacionaisDTO {
   taxaEntregaBase: number;
+  tempoEntregaMin: number;
+  tempoEntregaMax: number;
   entregaPropria?: boolean;
   retiradaNoLocal?: boolean;
   raioEntregaKm?: number | null;
@@ -178,6 +180,7 @@ export interface LojaCreateDTO {
   imagemUrl: string;
   descricao: string;
   categoria: string;
+  isAberto: boolean;
   endereco: EnderecoLojaDTO;
   horarios: HorariosDTO;
   dadosOperacionais: DadosOperacionaisDTO;
@@ -199,34 +202,42 @@ export async function criarLoja(dados: LojaCreateDTO): Promise<{ id: string }> {
 }
 
 /**
- * Busca dados da loja do usuário autenticado
- * GET /lojas/minha-loja
+ * Busca dados da loja do usuário autenticado.
+ * Travado: GET /lojas/minha-loja ainda não existe no backend.
  */
-export async function buscarMinhaLoja(): Promise<any> {
-  return requisicao<any>('/lojas/minha-loja');
+export async function buscarMinhaLoja(): Promise<never> {
+  throw new Error('GET /lojas/minha-loja ainda não existe no backend.');
 }
 
 /**
- * Atualiza dados da loja
- * PUT /lojas/{id}
+ * Atualiza dados da loja.
+ * Travado: PUT /lojas/{id} ainda não existe no backend.
  */
-export async function atualizarLoja(id: string, dados: Partial<LojaCreateDTO>): Promise<void> {
-  return requisicao<void>(`/lojas/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(dados),
-  });
+export async function atualizarLoja(_id: string, _dados: Partial<LojaCreateDTO>): Promise<never> {
+  throw new Error('PUT /lojas/{id} ainda não existe no backend.');
 }
 
 // ==================== Produtos ====================
+
+export interface PaginaSpring<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
 
 export interface ProdutoLojistaDTO {
   id?: string;
   nome: string;
   descricao: string;
   preco: number;
-  categoria: string;
-  fotoUrl?: string;
+  categoriaMenu: string;
+  imagemUrl?: string;
+  peso?: number;
+  percentualDesconto?: number;
   ativo: boolean;
+  estoque?: number;
   adicionais?: GrupoAdicionalDTO[];
 }
 
@@ -239,11 +250,12 @@ export interface GrupoAdicionalDTO {
 }
 
 /**
- * Lista produtos da loja do usuário
- * GET /produtos/loja
+ * Lista produtos da loja do lojista autenticado (paginado).
+ * GET /lojista/produtos
  */
 export async function listarProdutos(): Promise<ProdutoLojistaDTO[]> {
-  return requisicao<ProdutoLojistaDTO[]>('/produtos/loja');
+  const pagina = await requisicao<PaginaSpring<ProdutoLojistaDTO>>('/lojista/produtos?size=100');
+  return pagina.content ?? [];
 }
 
 /**
@@ -278,11 +290,11 @@ export async function atualizarProduto(id: string, dados: Partial<ProdutoLojista
 
 /**
  * Desativa um produto (soft delete)
- * PATCH /produtos/{id}/desativar
+ * DELETE /produtos/{id} → 204 No Content
  */
 export async function desativarProduto(id: string): Promise<void> {
-  return requisicao<void>(`/produtos/${id}/desativar`, {
-    method: 'PATCH',
+  return requisicao<void>(`/produtos/${id}`, {
+    method: 'DELETE',
   });
 }
 
@@ -290,11 +302,11 @@ export async function desativarProduto(id: string): Promise<void> {
 
 export interface PedidoResumoDTO {
   id: string;
-  numeroPedido: number;
-  clienteNome: string;
+  lojaId: string;
+  lojaNome: string;
   valorTotal: number;
   status: string;
-  dataCriacao: string;
+  criadoEm: string;
 }
 
 export interface PedidoDetalheDTO extends PedidoResumoDTO {
@@ -307,35 +319,38 @@ export interface PedidoDetalheDTO extends PedidoResumoDTO {
   }[];
   formaPagamento: string;
   enderecoEntrega: string;
+  clienteNome?: string;
   clienteTelefone?: string;
   observacoes?: string;
 }
 
 /**
- * Lista pedidos da loja
- * GET /pedidos
+ * Lista pedidos recebidos pela loja do lojista autenticado (paginado).
+ * GET /lojista/pedidos
  */
 export async function listarPedidos(filtros?: { status?: string }): Promise<PedidoResumoDTO[]> {
   const params = new URLSearchParams();
+  params.set('size', '100');
   if (filtros?.status) params.set('status', filtros.status);
-  
-  const query = params.toString() ? `?${params.toString()}` : '';
-  return requisicao<PedidoResumoDTO[]>(`/pedidos${query}`);
+
+  const pagina = await requisicao<PaginaSpring<PedidoResumoDTO>>(`/lojista/pedidos?${params.toString()}`);
+  return pagina.content ?? [];
 }
 
 /**
- * Busca detalhes de um pedido
- * GET /pedidos/{id}
+ * Detalhe de pedido para o lojista.
+ * Travado: GET /pedidos/{id} só autoriza o cliente comprador (403 para o lojista).
+ * Não existe GET /lojista/pedidos/{id} no backend ainda.
  */
-export async function buscarPedido(id: string): Promise<PedidoDetalheDTO> {
-  return requisicao<PedidoDetalheDTO>(`/pedidos/${id}`);
+export async function buscarPedido(_id: string): Promise<never> {
+  throw new Error('Detalhe de pedido para lojista ainda não existe no backend.');
 }
 
 /**
  * Atualiza status de um pedido
  * PATCH /pedidos/{id}/status
  * 
- * NOTA: Confirmar nome do campo de status no body (ex: { status: 'aceito' })
+ * NOTA: Confirmar nome do campo de status no body (ex: { status: 'PAGO' })
  */
 export async function atualizarStatusPedido(id: string, status: string): Promise<void> {
   return requisicao<void>(`/pedidos/${id}/status`, {

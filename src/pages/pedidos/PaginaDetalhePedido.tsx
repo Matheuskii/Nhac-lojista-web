@@ -7,88 +7,56 @@ import Emblema from '../../components/ui/Emblema';
 import { StatusPedido } from '../../types';
 import { formatarMoeda, formatarDataHora, STATUS_PEDIDO_INFO, FLUXO_STATUS_PEDIDO } from '../../utils/formatacao';
 import { ArrowLeft, User, Phone, MapPin, CreditCard, Check } from 'lucide-react';
-import { buscarPedido, atualizarStatusPedido, PedidoDetalheDTO } from '../../services/api';
+import { pedidosMock } from '../../dados/pedidos';
 import estilos from './PaginaDetalhePedido.module.css';
 
 const ROTULOS_ETAPA: Record<string, string> = {
-  pendente: 'Recebido',
-  aceito: 'Aceito',
-  preparando: 'Em preparo',
-  saiu_entrega: 'A caminho',
-  entregue: 'Entregue',
+  PENDENTE: 'Recebido',
+  PAGO: 'Pago',
+  PREPARANDO: 'Em preparo',
+  SAIU_ENTREGA: 'A caminho',
+  ENTREGUE: 'Entregue',
 };
+
+const AVISO_BACKEND =
+  'O detalhe de pedido para o lojista ainda não existe no backend (GET /pedidos/{id} só autoriza o cliente). Esta tela está mockada até haver um endpoint de lojista.';
 
 const PaginaDetalhePedido = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [pedido, setPedido] = useState<PedidoDetalheDTO | null>(null);
-  const [status, setStatus] = useState<StatusPedido | undefined>(undefined);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const pedidoMock = pedidosMock.find(p => p.id === id) ?? null;
+  const [status, setStatus] = useState<StatusPedido | undefined>(pedidoMock?.status);
 
   useEffect(() => {
-    carregarPedido();
-  }, [id]);
+    setStatus(pedidoMock?.status);
+  }, [id, pedidoMock?.status]);
 
-  async function carregarPedido() {
-    try {
-      setCarregando(true);
-      setErro(null);
-      if (!id) return;
-      const dados = await buscarPedido(id);
-      setPedido(dados);
-      setStatus(dados.status as StatusPedido);
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Erro ao carregar pedido');
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  if (carregando) {
+  if (!pedidoMock) {
     return (
       <LayoutPagina titulo="Pedido">
         <div className={estilos.naoEncontrado}>
-          <p>Carregando pedido...</p>
-        </div>
-      </LayoutPagina>
-    );
-  }
-
-  if (erro || !pedido) {
-    return (
-      <LayoutPagina titulo="Pedido">
-        <div className={estilos.naoEncontrado}>
-          <p>{erro || 'Pedido não encontrado.'}</p>
+          <p>{AVISO_BACKEND}</p>
           <Botao variante="secundario" onClick={() => navigate('/pedidos')}>Voltar para pedidos</Botao>
         </div>
       </LayoutPagina>
     );
   }
 
-  const statusInfo = STATUS_PEDIDO_INFO[status ?? pedido.status];
-  const indiceAtual = FLUXO_STATUS_PEDIDO.indexOf((status ?? pedido.status) as typeof FLUXO_STATUS_PEDIDO[number]);
-  const cancelado = status === 'cancelado';
-
-  const handleSalvarStatus = async () => {
-    try {
-      if (!id || !status) return;
-      await atualizarStatusPedido(id, status);
-      alert(`Status do pedido #${pedido.numeroPedido} atualizado para "${STATUS_PEDIDO_INFO[status].rotulo}".`);
-      navigate('/pedidos');
-    } catch (err) {
-      alert('Erro ao atualizar status do pedido');
-    }
-  };
+  const statusAtual = status ?? pedidoMock.status;
+  const statusInfo = STATUS_PEDIDO_INFO[statusAtual] ?? { rotulo: statusAtual, variante: 'neutro' as const };
+  const indiceAtual = FLUXO_STATUS_PEDIDO.indexOf(statusAtual as typeof FLUXO_STATUS_PEDIDO[number]);
+  const cancelado = statusAtual === 'CANCELADO';
 
   return (
-    <LayoutPagina titulo={`Pedido #${pedido.numeroPedido}`}>
+    <LayoutPagina titulo={`Pedido #${pedidoMock.numeroPedido}`}>
       <div className={estilos.container}>
+        <p className={estilos.avisoBloqueio}>{AVISO_BACKEND}</p>
+
         <header className={estilos.cabecalho}>
           <button className={estilos.botaoVoltar} onClick={() => navigate('/pedidos')} aria-label="Voltar">
             <ArrowLeft size={20} />
           </button>
-          <h2 className={estilos.titulo}>Pedido #{pedido.numeroPedido}</h2>
+          <h2 className={estilos.titulo}>Pedido #{pedidoMock.numeroPedido}</h2>
           <Emblema variante={statusInfo.variante} className={estilos.emblemaTopo}>{statusInfo.rotulo}</Emblema>
         </header>
 
@@ -99,17 +67,17 @@ const PaginaDetalhePedido = () => {
               <Cartao className={estilos.cartaoInfo}>
                 <div className={estilos.linhaInfo}>
                   <User size={18} className={estilos.iconeInfo} />
-                  <span>{pedido.clienteNome}</span>
+                  <span>{pedidoMock.clienteNome}</span>
                 </div>
                 <div className={estilos.divisor} />
                 <div className={estilos.linhaInfo}>
                   <Phone size={18} className={estilos.iconeInfo} />
-                  <span>{pedido.clienteTelefone}</span>
+                  <span>{pedidoMock.clienteTelefone}</span>
                 </div>
                 <div className={estilos.divisor} />
                 <div className={estilos.linhaInfo}>
                   <MapPin size={18} className={estilos.iconeInfo} />
-                  <span>{pedido.enderecoEntrega}</span>
+                  <span>{pedidoMock.enderecoEntrega}</span>
                 </div>
               </Cartao>
             </section>
@@ -117,7 +85,7 @@ const PaginaDetalhePedido = () => {
             <section>
               <h3 className={estilos.tituloSecao}>Itens do pedido</h3>
               <Cartao className={estilos.cartaoInfo}>
-                {pedido.itens.map((item, idx) => (
+                {pedidoMock.itens.map((item, idx) => (
                   <React.Fragment key={`${item.produtoId}-${idx}`}>
                     <div className={estilos.linhaItem}>
                       <div className={estilos.infoItem}>
@@ -131,15 +99,15 @@ const PaginaDetalhePedido = () => {
                     <div className={estilos.divisor} />
                   </React.Fragment>
                 ))}
-                {pedido.observacoes && (
+                {pedidoMock.observacoes && (
                   <>
-                    <p className={estilos.observacoes}>Obs: {pedido.observacoes}</p>
+                    <p className={estilos.observacoes}>Obs: {pedidoMock.observacoes}</p>
                     <div className={estilos.divisor} />
                   </>
                 )}
                 <div className={estilos.linhaTotal}>
                   <span>Total</span>
-                  <span>{formatarMoeda(pedido.valorTotal)}</span>
+                  <span>{formatarMoeda(pedidoMock.valorTotal)}</span>
                 </div>
               </Cartao>
             </section>
@@ -149,7 +117,7 @@ const PaginaDetalhePedido = () => {
               <Cartao className={estilos.cartaoInfo}>
                 <div className={estilos.linhaInfo}>
                   <CreditCard size={18} className={estilos.iconeInfo} />
-                  <span>{pedido.formaPagamento} · {formatarDataHora(pedido.dataCriacao)}</span>
+                  <span>{pedidoMock.formaPagamento} · {formatarDataHora(pedidoMock.dataCriacao)}</span>
                 </div>
               </Cartao>
             </section>
@@ -184,17 +152,18 @@ const PaginaDetalhePedido = () => {
                 <select
                   id="status-pedido"
                   className={estilos.select}
-                  value={status ?? pedido.status}
+                  value={statusAtual}
                   onChange={(e) => setStatus(e.target.value as StatusPedido)}
+                  disabled
                 >
                   {FLUXO_STATUS_PEDIDO.map(etapa => (
                     <option key={etapa} value={etapa}>{ROTULOS_ETAPA[etapa]}</option>
                   ))}
-                  <option value="cancelado">Cancelado</option>
+                  <option value="CANCELADO">Cancelado</option>
                 </select>
               </div>
 
-              <Botao larguraTotal onClick={handleSalvarStatus}>Salvar status</Botao>
+              <Botao larguraTotal disabled>Salvar status</Botao>
             </Cartao>
           </div>
         </div>

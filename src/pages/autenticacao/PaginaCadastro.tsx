@@ -71,6 +71,8 @@ export default function PaginaCadastro() {
   const [retiradaNoLocal, setRetiradaNoLocal] = useState(true);
   const [raioEntregaKm, setRaioEntregaKm] = useState('5');
   const [taxaEntregaReais, setTaxaEntregaReais] = useState('5.00');
+  const [tempoEntregaMin, setTempoEntregaMin] = useState('30');
+  const [tempoEntregaMax, setTempoEntregaMax] = useState('60');
 
   // Etapa 4 — Horários (antiga etapa 5)
   const [horarios, setHorarios] = useState(
@@ -123,6 +125,19 @@ export default function PaginaCadastro() {
     return Object.keys(novosErros).length === 0;
   };
 
+  const validarEtapa3 = () => {
+    const novosErros: Record<string, string> = {};
+    const min = parseInt(tempoEntregaMin, 10);
+    const max = parseInt(tempoEntregaMax, 10);
+    if (Number.isNaN(min) || min < 0) novosErros.tempoEntregaMin = 'Informe o tempo mínimo em minutos';
+    if (Number.isNaN(max) || max < 0) novosErros.tempoEntregaMax = 'Informe o tempo máximo em minutos';
+    if (!Number.isNaN(min) && !Number.isNaN(max) && max < min) {
+      novosErros.tempoEntregaMax = 'O tempo máximo deve ser maior ou igual ao mínimo';
+    }
+    setErros(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
   const validarEtapa5 = () => {
     const selecionadoAlgum = Object.values(pagamentos).some(v => v);
     if (!selecionadoAlgum) {
@@ -138,7 +153,7 @@ export default function PaginaCadastro() {
     if (etapaAtual === 0) valido = validarEtapa0();
     else if (etapaAtual === 1) valido = validarEtapa1();
     else if (etapaAtual === 2) valido = validarEtapa2();
-    else if (etapaAtual === 3) valido = true;
+    else if (etapaAtual === 3) valido = validarEtapa3();
     else if (etapaAtual === 4) valido = true;
     else if (etapaAtual === 5) valido = validarEtapa5();
 
@@ -166,23 +181,25 @@ export default function PaginaCadastro() {
         senha,
       });
 
-      // 2. Converte horários para formato do backend
+      const serializarHorario = (dia: { aberto: boolean; abertura: string; fechamento: string }) =>
+        dia.aberto ? `${dia.abertura} - ${dia.fechamento}` : 'Fechado';
+
       const horariosDTO = {
-        segunda: { aberto: horarios[0].aberto, abertura: horarios[0].abertura, fechamento: horarios[0].fechamento },
-        terca: { aberto: horarios[1].aberto, abertura: horarios[1].abertura, fechamento: horarios[1].fechamento },
-        quarta: { aberto: horarios[2].aberto, abertura: horarios[2].abertura, fechamento: horarios[2].fechamento },
-        quinta: { aberto: horarios[3].aberto, abertura: horarios[3].abertura, fechamento: horarios[3].fechamento },
-        sexta: { aberto: horarios[4].aberto, abertura: horarios[4].abertura, fechamento: horarios[4].fechamento },
-        sabado: { aberto: horarios[5].aberto, abertura: horarios[5].abertura, fechamento: horarios[5].fechamento },
-        domingo: { aberto: horarios[6].aberto, abertura: horarios[6].abertura, fechamento: horarios[6].fechamento },
+        segunda: serializarHorario(horarios[0]),
+        terca: serializarHorario(horarios[1]),
+        quarta: serializarHorario(horarios[2]),
+        quinta: serializarHorario(horarios[3]),
+        sexta: serializarHorario(horarios[4]),
+        sabado: serializarHorario(horarios[5]),
+        domingo: serializarHorario(horarios[6]),
       };
 
-      // 3. Cria a loja
       await criarLoja({
         nome: nomeLoja,
         imagemUrl: fotoUrl || 'https://via.placeholder.com/150',
         descricao: descricaoLoja || '',
         categoria: categoriaLoja,
+        isAberto: true,
         endereco: {
           cep: cep.replace(/\D/g, ''),
           rua,
@@ -190,7 +207,7 @@ export default function PaginaCadastro() {
           complemento: complemento || undefined,
           bairro,
           cidade,
-          uf,
+          estado: uf,
         },
         horarios: horariosDTO,
         dadosOperacionais: {
@@ -198,6 +215,8 @@ export default function PaginaCadastro() {
           retiradaNoLocal,
           raioEntregaKm: parseFloat(raioEntregaKm) || null,
           taxaEntregaBase: parseFloat(taxaEntregaReais.replace(',', '.')) || 0,
+          tempoEntregaMin: parseInt(tempoEntregaMin, 10),
+          tempoEntregaMax: parseInt(tempoEntregaMax, 10),
         },
         formasPagamento: {
           aceitaDinheiro: pagamentos.dinheiro,
@@ -469,6 +488,25 @@ export default function PaginaCadastro() {
                 </>
               )}
 
+              <div className={`${estilos.grid} ${estilos.grid2}`}>
+                <InputTexto
+                  rotulo="Tempo mínimo de entrega (min)"
+                  tipo="number"
+                  valor={tempoEntregaMin}
+                  aoMudar={setTempoEntregaMin}
+                  erro={erros.tempoEntregaMin}
+                  obrigatorio
+                />
+                <InputTexto
+                  rotulo="Tempo máximo de entrega (min)"
+                  tipo="number"
+                  valor={tempoEntregaMax}
+                  aoMudar={setTempoEntregaMax}
+                  erro={erros.tempoEntregaMax}
+                  obrigatorio
+                />
+              </div>
+
               <Toggle
                 rotulo="Permite retirada no local?"
                 ativo={retiradaNoLocal}
@@ -636,6 +674,7 @@ export default function PaginaCadastro() {
               <div className={estilos.revisaoSecao}>
                 <h4 className={estilos.revisaoTitulo}>Entrega</h4>
                 <div className={estilos.revisaoItem}><span>Entrega própria</span><strong>{entregaPropria ? `Sim (${raioEntregaKm} km, R$ ${taxaEntregaReais})` : 'Não'}</strong></div>
+                <div className={estilos.revisaoItem}><span>Tempo de entrega</span><strong>{tempoEntregaMin}–{tempoEntregaMax} min</strong></div>
                 <div className={estilos.revisaoItem}><span>Retirada no local</span><strong>{retiradaNoLocal ? 'Sim' : 'Não'}</strong></div>
               </div>
 

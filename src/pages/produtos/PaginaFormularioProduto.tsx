@@ -50,9 +50,9 @@ const PaginaFormularioProduto = () => {
       setNome(produto.nome);
       setDescricao(produto.descricao || '');
       setPreco(produto.preco.toString());
-      setCategoria(produto.categoria);
+      setCategoria(produto.categoriaMenu);
       setAtivo(produto.ativo);
-      setFotoUrl(produto.fotoUrl || '');
+      setFotoUrl(produto.imagemUrl || '');
       setAdicionais(produto.adicionais || []);
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao carregar produto');
@@ -73,8 +73,8 @@ const PaginaFormularioProduto = () => {
         nome,
         descricao,
         preco: parseFloat(preco.replace(',', '.')),
-        categoria,
-        fotoUrl,
+        categoriaMenu: categoria,
+        imagemUrl: fotoUrl,
         ativo,
         adicionais: adicionais.length > 0 ? adicionais : undefined,
       };

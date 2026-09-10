@@ -8,7 +8,7 @@ import Toggle from '../../components/ui/Toggle';
 import { resumoFinanceiroMock, faturamentoDiarioMock } from '../../dados/financeiro';
 import { pedidosMock } from '../../dados/pedidos';
 import { lojaMock } from '../../dados/loja';
-import { formatarMoeda, formatarData } from '../../utils/formatacao';
+import { formatarMoeda, formatarData, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
 import { DollarSign, ShoppingBag, TrendingUp, ChevronRight, Clock, Star, ChefHat, Bike, CheckCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import estilos from './PaginaPainel.module.css';
@@ -21,9 +21,9 @@ const PaginaPainel = () => {
   const [lojaAberta, setLojaAberta] = useState(true);
 
   // Status de pedidos mock (você pode iterar pelos pedidos ou usar dados já definidos)
-  const pedidosEmPreparo = pedidosMock.filter(p => p.status === 'preparando' || p.status === 'pendente' || p.status === 'aceito').length;
-  const pedidosCaminho = pedidosMock.filter(p => p.status === 'saiu_entrega').length;
-  const pedidosConcluidos = pedidosMock.filter(p => p.status === 'entregue').length;
+  const pedidosEmPreparo = pedidosMock.filter(p => p.status === 'PREPARANDO' || p.status === 'PENDENTE' || p.status === 'PAGO').length;
+  const pedidosCaminho = pedidosMock.filter(p => p.status === 'SAIU_ENTREGA').length;
+  const pedidosConcluidos = pedidosMock.filter(p => p.status === 'ENTREGUE').length;
 
   const faturamentoSemana = faturamentoDiarioMock.slice(-7);
   const variacaoDiaAnterior = 12.5; // Exemplo fixo de variação
@@ -159,8 +159,8 @@ const PaginaPainel = () => {
                       <span className={estilos.pedidoCliente}>{pedido.clienteNome}</span>
                     </div>
                     <div className={estilos.pedidoStatus}>
-                      <Emblema variante={pedido.status === 'entregue' ? 'sucesso' : pedido.status === 'cancelado' ? 'erro' : 'info'}>
-                        {pedido.status}
+                      <Emblema variante={pedido.status === 'ENTREGUE' ? 'sucesso' : pedido.status === 'CANCELADO' ? 'erro' : 'info'}>
+                        {STATUS_PEDIDO_INFO[pedido.status]?.rotulo ?? pedido.status}
                       </Emblema>
                     </div>
                     <div className={estilos.pedidoTotal}>

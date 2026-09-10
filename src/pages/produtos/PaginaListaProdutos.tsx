@@ -56,7 +56,7 @@ const PaginaListaProdutos = () => {
 
   const produtosFiltrados = produtos.filter(p => {
     const matchBusca = p.nome.toLowerCase().includes(busca.toLowerCase());
-    const matchCategoria = categoriaFiltro ? p.categoria === categoriaFiltro : true;
+    const matchCategoria = categoriaFiltro ? p.categoriaMenu === categoriaFiltro : true;
     return matchBusca && matchCategoria;
   });
 
@@ -122,12 +122,12 @@ const PaginaListaProdutos = () => {
               return (
                 <Cartao key={produto.id} className={estilos.cartaoProduto}>
                   <div className={estilos.imagemWrapper}>
-                    <img src={produto.fotoUrl || 'https://placehold.co/400x300/FF6961/FFFFFF?text=Sem+Imagem'} alt={produto.nome} className={estilos.imagem} />
+                    <img src={produto.imagemUrl || 'https://placehold.co/400x300/FF6961/FFFFFF?text=Sem+Imagem'} alt={produto.nome} className={estilos.imagem} />
                   </div>
                   <div className={estilos.info}>
                     <div className={estilos.linha1}>
                       <h3 className={estilos.nome}>{produto.nome}</h3>
-                      <Emblema variante="info">{produto.categoria || 'Outros'}</Emblema>
+                      <Emblema variante="info">{produto.categoriaMenu || 'Outros'}</Emblema>
                     </div>
                     <p className={estilos.preco}>{formatarMoeda(produto.preco)}</p>
                     <div className={estilos.acoes}>

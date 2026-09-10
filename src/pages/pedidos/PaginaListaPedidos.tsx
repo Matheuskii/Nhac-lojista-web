@@ -16,10 +16,11 @@ interface FiltroTag {
 
 const FILTROS: FiltroTag[] = [
   { valor: 'todos', rotulo: 'Todos' },
-  { valor: 'pendente', rotulo: 'Confirmar' },
-  { valor: 'preparando', rotulo: 'Em preparo' },
-  { valor: 'saiu_entrega', rotulo: 'A caminho' },
-  { valor: 'entregue', rotulo: 'Entregue' },
+  { valor: 'PENDENTE', rotulo: 'Confirmar' },
+  { valor: 'PAGO', rotulo: 'Pago' },
+  { valor: 'PREPARANDO', rotulo: 'Em preparo' },
+  { valor: 'SAIU_ENTREGA', rotulo: 'A caminho' },
+  { valor: 'ENTREGUE', rotulo: 'Entregue' },
 ];
 
 const PaginaListaPedidos = () => {
@@ -51,7 +52,7 @@ const PaginaListaPedidos = () => {
 
   const pedidosFiltrados = pedidos
     .filter(p => filtro === 'todos' || p.status === filtro)
-    .sort((a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime());
+    .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
   return (
     <LayoutPagina titulo="Pedidos">
@@ -91,7 +92,7 @@ const PaginaListaPedidos = () => {
         ) : (
           <div className={estilos.lista}>
             {pedidosFiltrados.map(pedido => {
-              const statusInfo = STATUS_PEDIDO_INFO[pedido.status];
+              const statusInfo = STATUS_PEDIDO_INFO[pedido.status] ?? { rotulo: pedido.status, variante: 'neutro' as const };
               // totalItens não disponível no PedidoResumoDTO
               return (
                 <Cartao
@@ -101,12 +102,12 @@ const PaginaListaPedidos = () => {
                 >
                   <div className={estilos.infoPrincipal}>
                     <div className={estilos.linhaTopo}>
-                      <span className={estilos.codigo}>#{pedido.numeroPedido}</span>
+                      <span className={estilos.codigo}>#{pedido.id.slice(0, 8)}</span>
                       <Emblema variante={statusInfo.variante}>{statusInfo.rotulo}</Emblema>
                     </div>
-                    <span className={estilos.cliente}>{pedido.clienteNome}</span>
+                    <span className={estilos.cliente}>{pedido.lojaNome || 'Pedido'}</span>
                     <span className={estilos.detalhe}>
-                      {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.dataCriacao)}
+                      {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.criadoEm)}
                     </span>
                   </div>
                   <ChevronRight size={20} className={estilos.seta} />
