@@ -5,28 +5,65 @@ import InputTexto from '../../components/ui/InputTexto';
 import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Avatar from '../../components/ui/Avatar';
-import { lojaMock } from '../../dados/loja';
 import { CATEGORIAS_LOJA } from '../../dados/categorias';
+import { useLoja } from '../../contexts/LojaContext';
+import { atualizarLoja } from '../../services/api';
+import { tratarErroApi } from '../../utils/errosApi';
+import { useToast } from '../../contexts/ToastContext';
 import estilos from './PaginaEditarInfoLoja.module.css';
 
 const PaginaEditarInfoLoja = () => {
   const navigate = useNavigate();
-  const [nome, setNome] = useState(lojaMock.nome);
-  const [descricao, setDescricao] = useState(lojaMock.descricao);
-  const [categoria, setCategoria] = useState(lojaMock.categoria);
+  const { loja, recarregar } = useLoja();
+  const { mostrarToast } = useToast();
+  const [nome, setNome] = useState(loja?.nome ?? '');
+  const [descricao, setDescricao] = useState(loja?.descricao ?? '');
+  const [categoria, setCategoria] = useState(loja?.categoria ?? '');
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
 
-  const handleSalvar = (e: React.FormEvent) => {
+  const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Informações da loja salvas com sucesso!');
-    navigate('/configuracoes');
+    if (!loja?.id) return;
+
+    setSalvando(true);
+    setErro('');
+    try {
+      await atualizarLoja(loja.id, { nome, descricao, categoria });
+      await recarregar();
+      navigate('/configuracoes');
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      if (tratado.toastGenerico) {
+        mostrarToast(tratado.mensagemGeral ?? 'Erro interno.');
+      } else {
+        setErro(tratado.mensagemGeral ?? 'Erro ao salvar informações.');
+      }
+    } finally {
+      setSalvando(false);
+    }
   };
+
+  if (!loja) {
+    return (
+      <LayoutPagina titulo="Editar informações">
+        <p>Carregando dados da loja...</p>
+      </LayoutPagina>
+    );
+  }
 
   return (
     <LayoutPagina titulo="Editar informações">
       <form onSubmit={handleSalvar} className={estilos.form}>
+        {erro && (
+          <div style={{ color: 'var(--nhac-erro, #e53935)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {erro}
+          </div>
+        )}
+
         <Cartao className={estilos.secao}>
           <div className={estilos.linhaFoto}>
-            <Avatar nome={nome || lojaMock.nome} tamanho="medio" />
+            <Avatar nome={nome || loja.nome} tamanho="medio" />
             <div className={estilos.infoFoto}>
               <span className={estilos.tituloFoto}>Foto ou logo da loja</span>
               <button type="button" className={estilos.linkAlterarFoto}>Alterar foto</button>
@@ -56,7 +93,7 @@ const PaginaEditarInfoLoja = () => {
 
         <div className={estilos.acoes}>
           <Botao type="button" variante="fantasma" onClick={() => navigate('/configuracoes')}>Cancelar</Botao>
-          <Botao type="submit" variante="primario">Salvar</Botao>
+          <Botao type="submit" variante="primario" carregando={salvando}>Salvar</Botao>
         </div>
       </form>
     </LayoutPagina>

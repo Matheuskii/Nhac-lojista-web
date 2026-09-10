@@ -117,6 +117,21 @@ export function mascaraTelefone(valor: string): string {
 }
 
 /**
+ * Máscara de CPF ou CNPJ enquanto digita.
+ */
+export function mascaraCpfCnpj(valor: string): string {
+  const limpo = valor.replace(/\D/g, '').slice(0, 14);
+  if (limpo.length <= 11) {
+    if (limpo.length <= 3) return limpo;
+    if (limpo.length <= 6) return `${limpo.slice(0, 3)}.${limpo.slice(3)}`;
+    if (limpo.length <= 9) return `${limpo.slice(0, 3)}.${limpo.slice(3, 6)}.${limpo.slice(6)}`;
+    return `${limpo.slice(0, 3)}.${limpo.slice(3, 6)}.${limpo.slice(6, 9)}-${limpo.slice(9)}`;
+  }
+  if (limpo.length <= 12) return `${limpo.slice(0, 2)}.${limpo.slice(2, 5)}.${limpo.slice(5, 8)}/${limpo.slice(8)}`;
+  return `${limpo.slice(0, 2)}.${limpo.slice(2, 5)}.${limpo.slice(5, 8)}/${limpo.slice(8, 12)}-${limpo.slice(12)}`;
+}
+
+/**
  * Máscara de CEP enquanto digita.
  */
 export function mascaraCep(valor: string): string {

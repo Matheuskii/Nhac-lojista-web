@@ -1,26 +1,73 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   User, Mail, Phone, Lock, Eye, EyeOff, 
   Store, UploadCloud, MapPin, CheckCircle, 
-  Banknote, CreditCard, Smartphone, Utensils, ShoppingBag
+  Banknote, CreditCard, Smartphone, Utensils, ShoppingBag,
 } from 'lucide-react';
 import estilos from './PaginaCadastro.module.css';
 import { Botao, InputTexto, Seletor, Toggle, Checkbox, IndicadorEtapas, Cartao } from '../../components/ui';
 import { mascaraTelefone, mascaraCep, ESTADOS_BRASILEIROS } from '../../utils/formatacao';
 import { CATEGORIAS_LOJA } from '../../dados/categorias';
-import { registrar, criarLoja, buscarCep as apiBuscarCep, gerarUUID } from '../../services/api';
+import { registrar, criarLoja, buscarCep as apiBuscarCep, enviarCodigoCadastro, checarEmail } from '../../services/api';
+import VerificacaoEmail from '../../components/autenticacao/VerificacaoEmail';
+import { useAutenticacao } from '../../hooks/useAutenticacao';
+import { useLoja } from '../../contexts/LojaContext';
+import { emailEstaVerificado, limparEmailVerificado, tratarErroApi } from '../../utils/errosApi';
+import { useToast } from '../../contexts/ToastContext';
+import {
+  validarNome,
+  validarEmail,
+  validarTelefone,
+  validarSenhaCadastro,
+  validarConfirmarSenha,
+  validarNomeLoja,
+  validarDescricaoLoja,
+  validarCategoria,
+  validarCep,
+  validarRua,
+  validarNumeroEndereco,
+  validarComplemento,
+  validarBairro,
+  validarCidade,
+  validarUf,
+  validarHorarioDia,
+  validarFormulario,
+  senhaTemMinimoOito,
+  senhaTemLetra,
+  senhaTemNumero,
+  forcaSenha,
+  limparTexto,
+  normalizarEmail,
+  soDigitos,
+  gerarUuid,
+} from '../../validators';
 
-// Etapas do wizard SEM a etapa de confirmação de e-mail (backend não tem esse endpoint ainda)
-const ETAPAS = [
+const ETAPAS_COMPLETO = [
   'Dados Pessoais',
+  'Verificação de E-mail',
   'Dados da Loja',
   'Endereço',
   'Entrega',
   'Horários',
   'Pagamento',
-  'Revisão'
+  'Revisão',
 ];
+
+const ETAPAS_LOJA = [
+  'Dados da Loja',
+  'Endereço',
+  'Entrega',
+  'Horários',
+  'Pagamento',
+  'Revisão',
+];
+
+type ModoCadastro = 'completo' | 'apenas-loja';
+
+interface PropsPaginaCadastro {
+  modo?: ModoCadastro;
+}
 
 const DIAS_SEMANA = [
   { id: 'seg', nome: 'Segunda-feira' },
@@ -32,13 +79,36 @@ const DIAS_SEMANA = [
   { id: 'dom', nome: 'Domingo' }
 ];
 
-export default function PaginaCadastro() {
+export default function PaginaCadastro({ modo = 'completo' }: PropsPaginaCadastro) {
   const navigate = useNavigate();
-  
+  const { definirSessao } = useAutenticacao();
+  const { recarregar: recarregarLoja } = useLoja();
+  const { mostrarToast } = useToast();
+
+  const etapas = modo === 'apenas-loja' ? ETAPAS_LOJA : ETAPAS_COMPLETO;
+  // Forma uniforme em ambos os modos (evita `number | undefined` na união)
+  const indices = useMemo(() => {
+    if (modo === 'apenas-loja') {
+      return { DADOS: -1, VERIFICACAO: -1, LOJA: 0, ENDERECO: 1, ENTREGA: 2, HORARIOS: 3, PAGAMENTO: 4, REVISAO: 5 };
+    }
+    return {
+      DADOS: 0,
+      VERIFICACAO: 1,
+      LOJA: 2,
+      ENDERECO: 3,
+      ENTREGA: 4,
+      HORARIOS: 5,
+      PAGAMENTO: 6,
+      REVISAO: 7,
+    };
+  }, [modo]);
+
   const [etapaAtual, setEtapaAtual] = useState(0);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [cadastroConcluido, setCadastroConcluido] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  // Spec §7: 429 no envio de código → bloqueia o botão Avançar com temporizador.
+  const [bloqueadoEnvioAte, setBloqueadoEnvioAte] = useState<number | null>(null);
 
   // Etapa 0 — Dados Pessoais
   const [nomeCompleto, setNomeCompleto] = useState('');
@@ -48,6 +118,8 @@ export default function PaginaCadastro() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
+  const [errosTocados, setErrosTocados] = useState<Record<string, boolean>>({});
+  const [aceitouTermos, setAceitouTermos] = useState(false);
 
   // Etapa 1 — Dados da Loja (antiga etapa 2)
   const [fotoUrl, setFotoUrl] = useState('');
@@ -94,38 +166,76 @@ export default function PaginaCadastro() {
     alimentacao: false
   });
 
-  const validarEtapa0 = () => {
-    const novosErros: Record<string, string> = {};
-    if (!nomeCompleto) novosErros.nomeCompleto = 'Nome é obrigatório';
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) novosErros.email = 'E-mail inválido';
-    if (!telefone) novosErros.telefone = 'Telefone é obrigatório';
-    if (senha.length < 6) novosErros.senha = 'A senha deve ter pelo menos 6 caracteres';
-    if (senha !== confirmarSenha) novosErros.confirmarSenha = 'As senhas não coincidem';
+  // Erro exibido por campo: on blur (se já tocou) ou on submit — nunca on change
+  const erroCampo = (campo: string): string | undefined =>
+    errosTocados[campo] ? erros[campo] : undefined;
+
+  const tocarCampo = (campo: string, valor: string, validar: (v: string) => string | null) => {
+    setErrosTocados((prev) => ({ ...prev, [campo]: true }));
+    const erro = validar(valor);
+    setErros((prev) => {
+      const novos = { ...prev };
+      if (erro) novos[campo] = erro;
+      else delete novos[campo];
+      return novos;
+    });
+  };
+
+  const validarDadosPessoais = () => {
+    const novosErros = validarFormulario(
+      { nomeCompleto, email, telefone, senha, confirmarSenha },
+      {
+        nomeCompleto: validarNome,
+        email: validarEmail,
+        telefone: validarTelefone,
+        senha: validarSenhaCadastro,
+        confirmarSenha: validarConfirmarSenha(senha),
+      }
+    );
+    if (!aceitouTermos) novosErros.termos = 'É necessário aceitar os termos para continuar.';
+    setErros(novosErros);
+    setErrosTocados({
+      nomeCompleto: true,
+      email: true,
+      telefone: true,
+      senha: true,
+      confirmarSenha: true,
+    });
+    return Object.keys(novosErros).length === 0;
+  };
+
+  const validarEtapaLoja = () => {
+    const novosErros = validarFormulario(
+      { nomeLoja, descricaoLoja, categoriaLoja },
+      {
+        nomeLoja: validarNomeLoja,
+        descricaoLoja: validarDescricaoLoja,
+        categoriaLoja: validarCategoria,
+      }
+    );
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
   };
 
-  const validarEtapa1 = () => {
-    const novosErros: Record<string, string> = {};
-    if (!nomeLoja) novosErros.nomeLoja = 'Nome da loja é obrigatório';
-    if (!categoriaLoja) novosErros.categoriaLoja = 'Selecione uma categoria';
+  const validarEtapaEndereco = () => {
+    const novosErros = validarFormulario(
+      { cep, rua, numero, bairro, cidade, uf },
+      {
+        cep: validarCep,
+        rua: validarRua,
+        numero: validarNumeroEndereco,
+        bairro: validarBairro,
+        cidade: validarCidade,
+        uf: validarUf,
+      }
+    );
+    const erroComplemento = validarComplemento(complemento);
+    if (erroComplemento) novosErros.complemento = erroComplemento;
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
   };
 
-  const validarEtapa2 = () => {
-    const novosErros: Record<string, string> = {};
-    if (!cep) novosErros.cep = 'CEP é obrigatório';
-    if (!rua) novosErros.rua = 'Rua é obrigatória';
-    if (!numero) novosErros.numero = 'Número é obrigatório';
-    if (!bairro) novosErros.bairro = 'Bairro é obrigatório';
-    if (!cidade) novosErros.cidade = 'Cidade é obrigatória';
-    if (!uf) novosErros.uf = 'UF é obrigatório';
-    setErros(novosErros);
-    return Object.keys(novosErros).length === 0;
-  };
-
-  const validarEtapa3 = () => {
+  const validarEtapaEntrega = () => {
     const novosErros: Record<string, string> = {};
     const min = parseInt(tempoEntregaMin, 10);
     const max = parseInt(tempoEntregaMax, 10);
@@ -138,7 +248,7 @@ export default function PaginaCadastro() {
     return Object.keys(novosErros).length === 0;
   };
 
-  const validarEtapa5 = () => {
+  const validarEtapaPagamento = () => {
     const selecionadoAlgum = Object.values(pagamentos).some(v => v);
     if (!selecionadoAlgum) {
       setErros({ pagamentos: 'Selecione pelo menos uma forma de pagamento' });
@@ -148,17 +258,82 @@ export default function PaginaCadastro() {
     return true;
   };
 
-  const avancar = () => {
+  const avancar = async () => {
     let valido = false;
-    if (etapaAtual === 0) valido = validarEtapa0();
-    else if (etapaAtual === 1) valido = validarEtapa1();
-    else if (etapaAtual === 2) valido = validarEtapa2();
-    else if (etapaAtual === 3) valido = validarEtapa3();
-    else if (etapaAtual === 4) valido = true;
-    else if (etapaAtual === 5) valido = validarEtapa5();
+
+    if (modo === 'completo' && etapaAtual === indices.DADOS) {
+      if (!validarDadosPessoais()) return;
+      setCarregando(true);
+      setErros({});
+      // Spec §3.1 — checar-email antes de enviar o código: se o e-mail
+      // já existir, redireciona para o login em vez de enviar código.
+      try {
+        const resultadoEmail = await checarEmail(email);
+        if (resultadoEmail.existe) {
+          const msg = 'Este e-mail já está cadastrado. Faça login.';
+          setErros({ email: msg });
+          mostrarToast(msg);
+          navigate('/login');
+          setCarregando(false);
+          return;
+        }
+      } catch (erroCheck) {
+        const tratCheck = tratarErroApi(erroCheck);
+        if (tratCheck.sugerirLogin) {
+          setErros({ email: tratCheck.mensagemGeral ?? 'Este e-mail já está cadastrado.' });
+          mostrarToast(tratCheck.mensagemGeral ?? 'Este e-mail já está cadastrado. Faça login.');
+          navigate('/login');
+          setCarregando(false);
+          return;
+        }
+        if (tratCheck.rateLimit || tratCheck.toastGenerico) {
+          setErros({ geral: tratCheck.mensagemGeral ?? 'Não foi possível verificar o e-mail.' });
+          setCarregando(false);
+          return;
+        }
+        // 400 de validação local: segue para enviar-codigo e deixa o
+        // backend responder com a mensagem definitiva.
+      }
+      try {
+        await enviarCodigoCadastro(email);
+        setEtapaAtual(indices.VERIFICACAO);
+        window.scrollTo(0, 0);
+      } catch (err) {
+        const tratado = tratarErroApi(err);
+        if (tratado.sugerirLogin) {
+          setErros({ geral: `${tratado.mensagemGeral} Faça login se já possui conta.` });
+        } else if (tratado.rateLimit) {
+          // Spec §7: 429 → bloquear UI com temporizador (bloqueio de 60s).
+          setBloqueadoEnvioAte(Date.now() + 60 * 1000);
+          setErros({ geral: tratado.mensagemGeral ?? 'Muitas tentativas. Aguarde antes de reenviar.' });
+        } else if (tratado.toastGenerico) {
+          mostrarToast(tratado.mensagemGeral ?? 'Erro interno.');
+        } else {
+          setErros({ geral: tratado.mensagemGeral ?? 'Erro ao enviar código.' });
+        }
+      } finally {
+        setCarregando(false);
+      }
+      return;
+    }
+
+    else if (etapaAtual === indices.LOJA) valido = validarEtapaLoja();
+    else if (etapaAtual === indices.ENDERECO) valido = validarEtapaEndereco();
+    else if (etapaAtual === indices.ENTREGA) valido = validarEtapaEntrega();
+    else if (etapaAtual === indices.HORARIOS) {
+      // Cada dia aberto exige abertura < fechamento (HH:mm)
+      const errosHorarios: Record<string, string> = {};
+      horarios.forEach((dia) => {
+        const erro = validarHorarioDia(dia);
+        if (erro) errosHorarios[dia.id] = erro;
+      });
+      setErros(errosHorarios);
+      valido = Object.keys(errosHorarios).length === 0;
+    }
+    else if (etapaAtual === indices.PAGAMENTO) valido = validarEtapaPagamento();
 
     if (valido) {
-      setEtapaAtual(prev => Math.min(prev + 1, ETAPAS.length - 1));
+      setEtapaAtual((prev) => Math.min(prev + 1, etapas.length - 1));
       window.scrollTo(0, 0);
     }
   };
@@ -168,23 +343,26 @@ export default function PaginaCadastro() {
     window.scrollTo(0, 0);
   };
 
-  const finalizar = async () => {
-    setCarregando(true);
-    try {
-      // 1. Registra o usuário (conta)
-      const usuarioId = gerarUUID();
-      const respostaRegistro = await registrar({
-        id: usuarioId,
-        nome: nomeCompleto,
-        email,
-        telefone,
-        senha,
-      });
+  const montarPayloadLoja = () => {
+    const serializarHorario = (dia: { aberto: boolean; abertura: string; fechamento: string }) =>
+      dia.aberto ? `${dia.abertura} - ${dia.fechamento}` : 'Fechado';
 
-      const serializarHorario = (dia: { aberto: boolean; abertura: string; fechamento: string }) =>
-        dia.aberto ? `${dia.abertura} - ${dia.fechamento}` : 'Fechado';
-
-      const horariosDTO = {
+    return {
+      nome: nomeLoja,
+      imagemUrl: fotoUrl || 'https://via.placeholder.com/150',
+      descricao: descricaoLoja || '',
+      categoria: categoriaLoja,
+      isAberto: true,
+      endereco: {
+        cep: cep.replace(/\D/g, ''),
+        rua,
+        numero,
+        complemento: complemento || undefined,
+        bairro,
+        cidade,
+        estado: uf,
+      },
+      horarios: {
         segunda: serializarHorario(horarios[0]),
         terca: serializarHorario(horarios[1]),
         quarta: serializarHorario(horarios[2]),
@@ -192,54 +370,94 @@ export default function PaginaCadastro() {
         sexta: serializarHorario(horarios[4]),
         sabado: serializarHorario(horarios[5]),
         domingo: serializarHorario(horarios[6]),
-      };
+      },
+      dadosOperacionais: {
+        entregaPropria,
+        retiradaNoLocal,
+        raioEntregaKm: parseFloat(raioEntregaKm) || null,
+        taxaEntregaBase: parseFloat(taxaEntregaReais.replace(',', '.')) || 0,
+        tempoEntregaMin: parseInt(tempoEntregaMin, 10),
+        tempoEntregaMax: parseInt(tempoEntregaMax, 10),
+      },
+      formasPagamento: {
+        aceitaDinheiro: pagamentos.dinheiro,
+        aceitaCredito: pagamentos.credito,
+        aceitaDebito: pagamentos.debito,
+        aceitaPix: pagamentos.pix,
+        aceitaValeRefeicao: pagamentos.refeicao,
+        aceitaValeAlimentacao: pagamentos.alimentacao,
+      },
+    };
+  };
 
-      await criarLoja({
-        nome: nomeLoja,
-        imagemUrl: fotoUrl || 'https://via.placeholder.com/150',
-        descricao: descricaoLoja || '',
-        categoria: categoriaLoja,
-        isAberto: true,
-        endereco: {
-          cep: cep.replace(/\D/g, ''),
-          rua,
-          numero,
-          complemento: complemento || undefined,
-          bairro,
-          cidade,
-          estado: uf,
-        },
-        horarios: horariosDTO,
-        dadosOperacionais: {
-          entregaPropria,
-          retiradaNoLocal,
-          raioEntregaKm: parseFloat(raioEntregaKm) || null,
-          taxaEntregaBase: parseFloat(taxaEntregaReais.replace(',', '.')) || 0,
-          tempoEntregaMin: parseInt(tempoEntregaMin, 10),
-          tempoEntregaMax: parseInt(tempoEntregaMax, 10),
-        },
-        formasPagamento: {
-          aceitaDinheiro: pagamentos.dinheiro,
-          aceitaCredito: pagamentos.credito,
-          aceitaDebito: pagamentos.debito,
-          aceitaPix: pagamentos.pix,
-          aceitaValeRefeicao: pagamentos.refeicao,
-          aceitaValeAlimentacao: pagamentos.alimentacao,
-        },
-      });
+  const finalizar = async () => {
+    setCarregando(true);
+    setErros({});
+    try {
+      if (modo === 'completo') {
+        if (!emailEstaVerificado(email)) {
+          setEtapaAtual(indices.VERIFICACAO);
+          setErros({ geral: 'Confirme seu e-mail antes de finalizar o cadastro.' });
+          return;
+        }
+
+        const respostaRegistro = await registrar({
+          // Campo `id` é obrigatório no RegistroRequestDTO — UUID gerado no frontend
+          id: gerarUuid(),
+          nome: limparTexto(nomeCompleto),
+          email: normalizarEmail(email),
+          telefone: soDigitos(telefone),
+          senha,
+        });
+
+        definirSessao(respostaRegistro.accessToken, {
+          id: respostaRegistro.usuarioId ?? email,
+          nomeCompleto: respostaRegistro.nome ?? nomeCompleto,
+          email,
+          telefone,
+          cargo: (respostaRegistro.papel as 'administrador') ?? 'administrador',
+        });
+        limparEmailVerificado();
+      }
+
+      await criarLoja(montarPayloadLoja());
+      await recarregarLoja();
+
+      if (modo === 'apenas-loja') {
+        navigate('/');
+        return;
+      }
 
       setCadastroConcluido(true);
-    } catch (erro: any) {
-      setErros({ geral: erro.message || 'Erro ao cadastrar. Tente novamente.' });
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      if (tratado.redirecionarVerificacao) {
+        setEtapaAtual(indices.VERIFICACAO);
+        setErros({ geral: tratado.mensagemGeral ?? 'Erro de verificação.' });
+      } else if (tratado.sugerirLogin) {
+        setErros({ geral: `${tratado.mensagemGeral} Faça login se já possui conta.` });
+      } else if (tratado.errosCampos) {
+        setErros(tratado.errosCampos);
+      } else if (tratado.toastGenerico) {
+        mostrarToast(tratado.mensagemGeral ?? 'Erro interno.');
+      } else {
+        setErros({ geral: tratado.mensagemGeral ?? 'Erro ao cadastrar. Tente novamente.' });
+      }
     } finally {
       setCarregando(false);
     }
+  };
+
+  const handleVerificacaoConcluida = () => {
+    setEtapaAtual(indices.LOJA);
+    window.scrollTo(0, 0);
   };
 
   const lidarComArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const url = URL.createObjectURL(e.target.files[0]);
       setFotoUrl(url);
+      setErros((prev) => { const n = { ...prev }; delete n.imagemUrl; return n; });
     }
   };
 
@@ -291,22 +509,31 @@ export default function PaginaCadastro() {
     <div className={estilos.container}>
       <div className={estilos.conteudo}>
         <div className={estilos.cabecalho}>
-          <h1 className={estilos.titulo}>Crie sua conta</h1>
-          <p className={estilos.subtitulo}>Junte-se ao Nhac e expanda suas vendas</p>
+          <h1 className={estilos.titulo}>
+            {modo === 'apenas-loja' ? 'Cadastre sua loja' : 'Crie sua conta'}
+          </h1>
+          <p className={estilos.subtitulo}>
+            {modo === 'apenas-loja'
+              ? 'Complete os dados para começar a vender no Nhac'
+              : 'Junte-se ao Nhac e expanda suas vendas'}
+          </p>
         </div>
 
-        <IndicadorEtapas etapas={ETAPAS} etapaAtual={etapaAtual} />
+        <IndicadorEtapas etapas={etapas} etapaAtual={etapaAtual} />
 
         <Cartao className={estilos.cartao}>
-          {/* ETAPA 0 — Dados Pessoais */}
-          {etapaAtual === 0 && (
+          {erros.geral && <div className={estilos.erro}>{erros.geral}</div>}
+
+          {/* Dados Pessoais */}
+          {modo === 'completo' && etapaAtual === indices.DADOS && (
             <div className={estilos.grid}>
               <InputTexto
                 rotulo="Nome Completo"
                 valor={nomeCompleto}
                 aoMudar={setNomeCompleto}
                 icone={<User size={18} />}
-                erro={erros.nomeCompleto}
+                erro={erroCampo('nomeCompleto')}
+                onBlur={() => tocarCampo('nomeCompleto', nomeCompleto, validarNome)}
                 obrigatorio
               />
               <InputTexto
@@ -315,7 +542,8 @@ export default function PaginaCadastro() {
                 valor={email}
                 aoMudar={setEmail}
                 icone={<Mail size={18} />}
-                erro={erros.email}
+                erro={erroCampo('email')}
+                onBlur={() => tocarCampo('email', email, validarEmail)}
                 obrigatorio
               />
               <InputTexto
@@ -323,7 +551,8 @@ export default function PaginaCadastro() {
                 valor={telefone}
                 aoMudar={(v) => setTelefone(mascaraTelefone(v))}
                 icone={<Phone size={18} />}
-                erro={erros.telefone}
+                erro={erroCampo('telefone')}
+                onBlur={() => tocarCampo('telefone', telefone, validarTelefone)}
                 obrigatorio
               />
               <div style={{ position: 'relative' }}>
@@ -333,7 +562,8 @@ export default function PaginaCadastro() {
                   valor={senha}
                   aoMudar={setSenha}
                   icone={<Lock size={18} />}
-                  erro={erros.senha}
+                  erro={erroCampo('senha')}
+                  onBlur={() => tocarCampo('senha', senha, validarSenhaCadastro)}
                   obrigatorio
                 />
                 <button
@@ -343,6 +573,22 @@ export default function PaginaCadastro() {
                 >
                   {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+                {senha.length > 0 && (
+                  <div style={{ marginTop: '0.5rem', display: 'grid', gap: '0.25rem', fontSize: '0.8rem' }}>
+                    <span style={{ color: senhaTemMinimoOito(senha) ? 'var(--nhac-sucesso, green)' : 'var(--nhac-texto-claro)' }}>
+                      {senhaTemMinimoOito(senha) ? '✓' : '○'} Mínimo 8 caracteres
+                    </span>
+                    <span style={{ color: senhaTemLetra(senha) ? 'var(--nhac-sucesso, green)' : 'var(--nhac-texto-claro)' }}>
+                      {senhaTemLetra(senha) ? '✓' : '○'} Pelo menos 1 letra
+                    </span>
+                    <span style={{ color: senhaTemNumero(senha) ? 'var(--nhac-sucesso, green)' : 'var(--nhac-texto-claro)' }}>
+                      {senhaTemNumero(senha) ? '✓' : '○'} Pelo menos 1 número
+                    </span>
+                    <span style={{ color: forcaSenha(senha) === 'forte' ? 'var(--nhac-sucesso, green)' : forcaSenha(senha) === 'media' ? 'orange' : 'var(--nhac-texto-claro)' }}>
+                      Força: {forcaSenha(senha)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div style={{ position: 'relative' }}>
                 <InputTexto
@@ -351,7 +597,8 @@ export default function PaginaCadastro() {
                   valor={confirmarSenha}
                   aoMudar={setConfirmarSenha}
                   icone={<Lock size={18} />}
-                  erro={erros.confirmarSenha}
+                  erro={erroCampo('confirmarSenha')}
+                  onBlur={() => tocarCampo('confirmarSenha', confirmarSenha, validarConfirmarSenha(senha))}
                   obrigatorio
                 />
                 <button
@@ -362,11 +609,32 @@ export default function PaginaCadastro() {
                   {mostrarConfirmarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
+              <div>
+                <Checkbox
+                  marcado={aceitouTermos}
+                  aoMudar={(marcado) => {
+                    setAceitouTermos(marcado);
+                    setErros((prev) => { const n = { ...prev }; delete n.termos; return n; });
+                  }}
+                  rotulo="Aceito os termos de uso e a política de privacidade (LGPD)"
+                />
+                {erros.termos && <div className={estilos.erro}>{erros.termos}</div>}
+              </div>
             </div>
           )}
 
-          {/* ETAPA 1 — Dados da Loja */}
-          {etapaAtual === 1 && (
+          {/* Verificação de E-mail */}
+          {modo === 'completo' && etapaAtual === indices.VERIFICACAO && (
+            <VerificacaoEmail
+              email={email}
+              onVerificado={handleVerificacaoConcluida}
+              enviarCodigoAoMontar={false}
+            />
+          )}
+
+          {/* Dados da Loja */}
+          {etapaAtual === indices.LOJA && (
             <div className={estilos.grid}>
               <div>
                 <span className={estilos.rotuloTextarea}>Logo da Loja</span>
@@ -392,14 +660,15 @@ export default function PaginaCadastro() {
                 </div>
               </div>
               
-              <InputTexto
-                rotulo="Nome da Loja"
-                valor={nomeLoja}
-                aoMudar={setNomeLoja}
-                icone={<Store size={18} />}
-                erro={erros.nomeLoja}
-                obrigatorio
-              />
+                <InputTexto
+                  rotulo="Nome da Loja"
+                  valor={nomeLoja}
+                  aoMudar={setNomeLoja}
+                  icone={<Store size={18} />}
+                  erro={erros.nomeLoja}
+                  obrigatorio
+                  onBlur={() => tocarCampo('nomeLoja', nomeLoja, validarNomeLoja)}
+                />
 
               <Seletor
                 rotulo="Categoria Principal"
@@ -417,13 +686,17 @@ export default function PaginaCadastro() {
                   value={descricaoLoja}
                   onChange={(e) => setDescricaoLoja(e.target.value)}
                   placeholder="Fale um pouco sobre sua loja e o que você oferece..."
+                  maxLength={2000}
                 />
+                <span style={{ display: 'block', textAlign: 'right', fontSize: '0.75rem', color: 'var(--nhac-texto-claro)' }}>
+                  {descricaoLoja.length}/2000
+                </span>
               </div>
             </div>
           )}
 
-          {/* ETAPA 2 — Endereço */}
-          {etapaAtual === 2 && (
+          {/* Endereço */}
+          {etapaAtual === indices.ENDERECO && (
             <div className={estilos.grid}>
               <InputTexto
                 rotulo="CEP"
@@ -434,7 +707,8 @@ export default function PaginaCadastro() {
                   if (valFormatado.length === 9) buscarCep(valFormatado);
                 }}
                 icone={<MapPin size={18} />}
-                erro={erros.cep}
+                erro={erroCampo('cep')}
+                onBlur={() => tocarCampo('cep', cep, validarCep)}
                 obrigatorio
               />
               {buscandoCep && <span style={{ fontSize: '0.8rem', color: 'var(--nhac-primaria)' }}>Buscando endereço...</span>}
@@ -463,8 +737,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 3 — Entrega */}
-          {etapaAtual === 3 && (
+          {/* Entrega */}
+          {etapaAtual === indices.ENTREGA && (
             <div className={estilos.grid}>
               <Toggle
                 rotulo="Oferece entrega própria?"
@@ -515,8 +789,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 4 — Horários */}
-          {etapaAtual === 4 && (
+          {/* Horários */}
+          {etapaAtual === indices.HORARIOS && (
             <div className={estilos.listaHorarios}>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
                 Configure os horários de funcionamento da sua loja.
@@ -564,8 +838,8 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 5 — Pagamento */}
-          {etapaAtual === 5 && (
+          {/* Pagamento */}
+          {etapaAtual === indices.PAGAMENTO && (
             <div className={estilos.grid}>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
                 Quais formas de pagamento você aceita?
@@ -643,19 +917,21 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* ETAPA 6 — Revisão */}
-          {etapaAtual === 6 && (
+          {/* Revisão */}
+          {etapaAtual === indices.REVISAO && (
             <div className={estilos.grid}>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--nhac-texto-claro)' }}>
                 Revise suas informações antes de finalizar o cadastro.
               </p>
 
-              <div className={estilos.revisaoSecao}>
-                <h4 className={estilos.revisaoTitulo}>Dados Pessoais</h4>
-                <div className={estilos.revisaoItem}><span>Nome</span><strong>{nomeCompleto}</strong></div>
-                <div className={estilos.revisaoItem}><span>E-mail</span><strong>{email}</strong></div>
-                <div className={estilos.revisaoItem}><span>Telefone</span><strong>{telefone}</strong></div>
-              </div>
+              {modo === 'completo' && (
+                <div className={estilos.revisaoSecao}>
+                  <h4 className={estilos.revisaoTitulo}>Dados Pessoais</h4>
+                  <div className={estilos.revisaoItem}><span>Nome</span><strong>{nomeCompleto}</strong></div>
+                  <div className={estilos.revisaoItem}><span>E-mail</span><strong>{email}</strong></div>
+                  <div className={estilos.revisaoItem}><span>Telefone</span><strong>{telefone}</strong></div>
+                </div>
+              )}
 
               <div className={estilos.revisaoSecao}>
                 <h4 className={estilos.revisaoTitulo}>Dados da Loja</h4>
@@ -704,34 +980,38 @@ export default function PaginaCadastro() {
             </div>
           )}
 
-          {/* NAVEGAÇÃO */}
-          <div className={estilos.acoes}>
-            {etapaAtual > 0 ? (
-              <Botao type="button" variante="secundario" onClick={voltar}>
-                Voltar
-              </Botao>
-            ) : (
-              <div></div>
-            )}
-            
-            {etapaAtual < ETAPAS.length - 1 ? (
-              <Botao type="button" variante="primario" onClick={avancar}>
-                Continuar
-              </Botao>
-            ) : (
-              <Botao type="button" variante="primario" onClick={finalizar}>
-                Confirmar e Finalizar
-              </Botao>
-            )}
-          </div>
+          {/* Navegação — oculta na etapa de verificação (ações internas) */}
+          {!(modo === 'completo' && etapaAtual === indices.VERIFICACAO) && (
+            <div className={estilos.acoes}>
+              {etapaAtual > 0 ? (
+                <Botao type="button" variante="secundario" onClick={voltar}>
+                  Voltar
+                </Botao>
+              ) : (
+                <div />
+              )}
+
+              {etapaAtual < etapas.length - 1 ? (
+                <Botao type="button" variante="primario" onClick={avancar} carregando={carregando}>
+                  Continuar
+                </Botao>
+              ) : (
+                <Botao type="button" variante="primario" onClick={finalizar} carregando={carregando}>
+                  Confirmar e Finalizar
+                </Botao>
+              )}
+            </div>
+          )}
         </Cartao>
 
-        <div className={estilos.rodape}>
-          Já tem uma conta?{' '}
-          <Link to="/login" className={estilos.link}>
-            Faça login
-          </Link>
-        </div>
+        {modo === 'completo' && (
+          <div className={estilos.rodape}>
+            Já tem uma conta?{' '}
+            <Link to="/login" className={estilos.link}>
+              Faça login
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* MODAL SUCESSO */}
@@ -743,12 +1023,12 @@ export default function PaginaCadastro() {
             </div>
             <h2 className={estilos.titulo}>Cadastro realizado com sucesso!</h2>
             <p className={estilos.subtitulo}>Sua loja já está pronta para usar o painel Nhac.</p>
-            <Botao 
-              variante="primario" 
-              larguraTotal 
-              onClick={() => navigate('/login')}
+            <Botao
+              variante="primario"
+              larguraTotal
+              onClick={() => navigate('/')}
             >
-              Ir para o login
+              Ir para o painel
             </Botao>
           </div>
         </div>

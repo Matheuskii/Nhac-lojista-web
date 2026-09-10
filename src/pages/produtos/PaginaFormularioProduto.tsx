@@ -17,6 +17,15 @@ import {
   ProdutoLojistaDTO,
   GrupoAdicionalDTO,
 } from '../../services/api';
+import {
+  validarNomeProduto,
+  validarDescricaoProduto,
+  validarPreco,
+  validarCategoria,
+  validarFormulario,
+  parsePreco,
+  limparTexto,
+} from '../../validators';
 import estilos from './PaginaFormularioProduto.module.css';
 
 const PaginaFormularioProduto = () => {
@@ -33,7 +42,40 @@ const PaginaFormularioProduto = () => {
   const [adicionais, setAdicionais] = useState<GrupoAdicionalDTO[]>([]);
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [erros, setErros] = useState<Record<string, string>>({});
+  const [errosTocados, setErrosTocados] = useState<Record<string, boolean>>({});
+
+  // Erro exibido por campo: on blur ou on submit — nunca on change
+  const erroCampo = (campo: string): string | undefined =>
+    errosTocados[campo] ? erros[campo] : undefined;
+
+  const tocarCampo = (campo: string, valor: string, validar: (v: string) => string | null) => {
+    setErrosTocados((prev) => ({ ...prev, [campo]: true }));
+    const erroValidacao = validar(valor);
+    setErros((prev) => {
+      const novos = { ...prev };
+      if (erroValidacao) novos[campo] = erroValidacao;
+      else delete novos[campo];
+      return novos;
+    });
+  };
+
+  const validarTudo = (): boolean => {
+    const novosErros = validarFormulario(
+      { nome, descricao, preco, categoria },
+      {
+        nome: validarNomeProduto,
+        descricao: validarDescricaoProduto,
+        preco: validarPreco,
+        categoria: validarCategoria,
+      }
+    );
+    setErros(novosErros);
+    setErrosTocados({ nome: true, descricao: true, preco: true, categoria: true });
+    return Object.keys(novosErros).length === 0;
+  };
 
   useEffect(() => {
     if (ehEdicao) {
@@ -68,13 +110,18 @@ const PaginaFormularioProduto = () => {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErro(null);
+    if (!validarTudo()) return;
+
+    setSalvando(true);
     try {
       const dadosProduto: ProdutoLojistaDTO = {
-        nome,
-        descricao,
-        preco: parseFloat(preco.replace(',', '.')),
-        categoriaMenu: categoria,
-        imagemUrl: fotoUrl,
+        // Trim em todo texto antes de enviar; preco convertido para number
+        nome: limparTexto(nome),
+        descricao: descricao.trim(),
+        preco: parsePreco(preco),
+        categoriaMenu: limparTexto(categoria),
+        imagemUrl: fotoUrl || undefined,
         ativo,
         adicionais: adicionais.length > 0 ? adicionais : undefined,
       };
@@ -89,6 +136,9 @@ const PaginaFormularioProduto = () => {
       navigate('/produtos');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro ao salvar produto');
+    } finally {
+      // Após erro de rede/backend, reabilitar o botão para permitir retry
+      setSalvando(false);
     }
   };
 
@@ -109,10 +159,24 @@ const PaginaFormularioProduto = () => {
           <Cartao className={estilos.secao}>
             <h3 className={estilos.tituloSecao}>Informações Básicas</h3>
             <div className={estilos.gridCampos}>
-              <InputTexto rotulo="Nome do Produto" valor={nome} aoMudar={setNome} obrigatorio />
-              <Seletor rotulo="Categoria" valor={categoria} aoMudar={setCategoria} opcoes={opcoesCategorias} obrigatorio />
-              <InputTexto rotulo="Preço" tipo="number" valor={preco} aoMudar={setPreco} obrigatorio />
-              <InputTexto rotulo="Descrição" valor={descricao} aoMudar={setDescricao} />
+              <InputTexto
+                rotulo="Nome do Produto"
+                valor={nome}
+                aoMudar={setNome}
+                erro={erroCampo('nome')}
+                onBlur={() => tocarCampo('nome', nome, validarNomeProduto)}
+                obrigatorio
+              />
+              <Seletor rotulo="Categoria" valor={categoria} aoMudar={setCategoria} opcoes={opcoesCategorias} erro={erros.categoria} obrigatorio />
+              <InputTexto
+                rotulo="Preço"
+                valor={preco}
+                aoMudar={setPreco}
+                erro={erroCampo('preco')}
+                onBlur={() => tocarCampo('preco', preco, validarPreco)}
+                obrigatorio
+              />
+              <InputTexto rotulo="Descrição" valor={descricao} aoMudar={setDescricao} erro={erroCampo('descricao')} />
               
               <div className={estilos.uploadWrapper}>
                 <span className={estilos.rotulo}>Foto do Produto</span>
@@ -179,7 +243,7 @@ const PaginaFormularioProduto = () => {
           )}
           <div className={estilos.acoesDir}>
             <Botao type="button" variante="fantasma" onClick={() => navigate('/produtos')}>Cancelar</Botao>
-            <Botao type="submit" variante="primario">Salvar Produto</Botao>
+            <Botao type="submit" variante="primario" carregando={salvando}>Salvar Produto</Botao>
           </div>
         </div>
       </form>

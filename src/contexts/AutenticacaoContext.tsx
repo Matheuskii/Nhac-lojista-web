@@ -1,11 +1,14 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { Usuario, Cargo } from '../types';
 import { login, LoginResponseDTO } from '../services/api';
+import { normalizarEmail } from '../validators';
+import { ehApiError, tratarErroApi } from '../utils/errosApi';
 
 interface ContextoAutenticacao {
   usuario: Usuario | null;
   carregando: boolean;
   entrar: (email: string, senha: string) => Promise<void>;
+  definirSessao: (token: string, dados: Partial<Usuario> & { id: string; nomeCompleto: string }) => void;
   sair: () => void;
   trocarCargo: (cargo: Cargo) => void;
 }
@@ -13,15 +16,22 @@ interface ContextoAutenticacao {
 export const AutenticacaoContext = createContext<ContextoAutenticacao | undefined>(undefined);
 
 /**
- * Converte a resposta do login da API para o formato Usuario do frontend
+ * Mapeia o papel do backend (CLIENTE | LOJISTA | ADMIN) para os cargos da UI.
+ * Nota: o cadastro retorna CLIENTE; o usuário é promovido a LOJISTA
+ * no backend quando a loja é criada (POST /lojas).
  */
-function converterUsuarioApi(usuarioApi: LoginResponseDTO, token: string): Usuario {
+function mapearCargo(papel?: string): Cargo {
+  if (papel === 'LOJISTA' || papel === 'ADMIN') return 'administrador';
+  return 'administrador';
+}
+
+function converterUsuarioApi(usuarioApi: LoginResponseDTO, emailFallback = ''): Usuario {
   return {
     id: usuarioApi.usuarioId,
     nomeCompleto: usuarioApi.nome,
-    email: '', 
+    email: usuarioApi.email ?? emailFallback,
     telefone: '',
-    cargo: usuarioApi.papel as Cargo || 'administrador',
+    cargo: mapearCargo(usuarioApi.papel),
     lojaId: '',
   };
 }
@@ -33,28 +43,43 @@ export const ProvedorAutenticacao: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem('@nhac:usuario');
     const tokenSalvo = localStorage.getItem('@nhac:token');
-    
+
     if (usuarioSalvo && tokenSalvo) {
       setUsuario(JSON.parse(usuarioSalvo));
     }
     setCarregando(false);
   }, []);
 
-  const entrar = async (email: string, senha: string): Promise<void> => {
+  const definirSessao = (token: string, dados: Partial<Usuario> & { id: string; nomeCompleto: string }) => {
+    localStorage.setItem('@nhac:token', token);
+    const usuarioFormatado: Usuario = {
+      id: dados.id,
+      nomeCompleto: dados.nomeCompleto,
+      email: dados.email ?? '',
+      telefone: dados.telefone ?? '',
+      cargo: dados.cargo ?? 'administrador',
+      lojaId: dados.lojaId ?? '',
+      fotoUrl: dados.fotoUrl,
+    };
+    setUsuario(usuarioFormatado);
+    localStorage.setItem('@nhac:usuario', JSON.stringify(usuarioFormatado));
+  };
+
+  const entrar = async (emailBruto: string, senha: string): Promise<void> => {
     setCarregando(true);
     try {
+      // E-mail padronizado: trim + lowercase antes de enviar
+      const email = normalizarEmail(emailBruto);
       const resposta = await login({ email, senha });
-      
-      // Salva token
-      localStorage.setItem('@nhac:token', resposta.token);
-      
-      // Converte e salva usuário
-      const usuarioFormatado = converterUsuarioApi(resposta, resposta.token);
-      setUsuario(usuarioFormatado);
-      localStorage.setItem('@nhac:usuario', JSON.stringify(usuarioFormatado));
-      
-    } catch (erro: any) {
-      throw new Error(erro.message || 'E-mail ou senha incorretos.');
+      definirSessao(resposta.accessToken, converterUsuarioApi(resposta, email));
+    } catch (erro) {
+      // Repassa o ApiError original para a UI poder distinguir casos como
+      // 429 (rate limit) e 400 (e-mail não verificado) dos 401 genéricos.
+      if (ehApiError(erro)) {
+        throw erro;
+      }
+      const tratado = tratarErroApi(erro);
+      throw new Error(tratado.mensagemGeral || 'E-mail ou senha inválidos.');
     } finally {
       setCarregando(false);
     }
@@ -75,7 +100,7 @@ export const ProvedorAutenticacao: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <AutenticacaoContext.Provider value={{ usuario, carregando, entrar, sair, trocarCargo }}>
+    <AutenticacaoContext.Provider value={{ usuario, carregando, entrar, definirSessao, sair, trocarCargo }}>
       {children}
     </AutenticacaoContext.Provider>
   );

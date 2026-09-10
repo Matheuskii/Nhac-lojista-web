@@ -3,18 +3,25 @@
  * Backend: https://github.com/Matheuskii/backend-nhac
  */
 
+import { ApiError, ErroBackend } from '../utils/errosApi';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
 
+function limparSessao(): void {
+  localStorage.removeItem('@nhac:token');
+  localStorage.removeItem('@nhac:usuario');
+}
+
 /**
- * Gera um UUID v4 simples para uso no frontend (ex: ID do usuário no registro)
- * Nota: Em produção, considere usar uma biblioteca dedicada como 'uuid'
+ * 401 em request autenticada = token expirado/inválido.
+ * Limpa sessão e redireciona para /login (o backend não tem refresh token).
  */
-function gerarUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+function tratar401SessaoExpirada(): void {
+  const token = localStorage.getItem('@nhac:token');
+  if (token) {
+    limparSessao();
+    window.location.href = '/login';
+  }
 }
 
 /**
@@ -25,9 +32,9 @@ async function requisicao<T>(
   opcoes: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const token = localStorage.getItem('@nhac:token');
-  
+
   const cabecalhos: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -42,28 +49,85 @@ async function requisicao<T>(
   });
 
   if (!resposta.ok) {
-    let mensagemErro = `Erro ${resposta.status}: ${resposta.statusText}`;
-    
+    let corpoErro: ErroBackend = {
+      status: resposta.status,
+      erro: 'ErroDesconhecido',
+      mensagem: `Erro ${resposta.status}: ${resposta.statusText}`,
+    };
+
     try {
-      const corpoErro = await resposta.json();
-      mensagemErro = corpoErro.mensagem || corpoErro.error || mensagemErro;
+      const json = await resposta.json();
+      corpoErro = {
+        requestId: json.requestId,
+        status: json.status ?? resposta.status,
+        erro: json.erro ?? json.error ?? 'ErroDesconhecido',
+        mensagem: json.mensagem ?? json.message ?? corpoErro.mensagem,
+        timestamp: json.timestamp,
+        path: json.path,
+        erros: json.details ?? json.erros ?? json.errors,
+      };
     } catch {
-      // Se não conseguir parsear JSON, usa mensagem padrão
+      // mantém mensagem padrão
     }
 
-    throw new Error(mensagemErro);
+    // 401 com token presente = sessão expirada → logout + redirect /login
+    if (resposta.status === 401) {
+      tratar401SessaoExpirada();
+    }
+
+    // Observado no backend real: token inválido/expirado retorna 403 com
+    // corpo vazio (filtro JWT do Spring Security). Nesse caso, também é
+    // sessão inválida → logout. 403 COM corpo é erro de permissão (negócio).
+    if (resposta.status === 403 && corpoErro.erro === 'ErroDesconhecido') {
+      tratar401SessaoExpirada();
+    }
+
+    // 5xx = erro genuíno do servidor. Logar o `requestId` para rastreio
+    // (spec §2/§7) — a UI já exibe a mensagem genérica via tratarErroApi.
+    if (resposta.status >= 500) {
+      console.error(
+        `[API] Erro ${resposta.status} em ${endpoint} — requestId: ${corpoErro.requestId ?? 'desconhecido'}`,
+        corpoErro
+      );
+    }
+
+    throw new ApiError(corpoErro);
   }
 
-  // Se a resposta for 204 No Content, retorna undefined
   if (resposta.status === 204) {
     return undefined as T;
   }
 
-  return resposta.json();
+  // Endpoints "void" do backend respondem 2xx SEM corpo JSON
+  // (ex.: /auth/enviar-codigo-cadastro, /auth/confirmar-email-cadastro,
+  // /auth/alterar-senha, PATCH /pedidos/{id}/status). Tentar `resposta.json()`
+  // num corpo vazio lança "Unexpected end of JSON input" — tratar como sucesso void.
+  const tipoConteudo = resposta.headers.get('content-type') ?? '';
+  if (!tipoConteudo.toLowerCase().includes('application/json')) {
+    return undefined as T;
+  }
+
+  try {
+    return await resposta.json();
+  } catch {
+    // 2xx com corpo vazio mas Content-Type JSON → sucesso void
+    return undefined as T;
+  }
+}
+
+function extrairToken(resposta: { accessToken?: string; token?: string }): string {
+  return resposta.accessToken ?? resposta.token ?? '';
 }
 
 // ==================== Autenticação ====================
 
+/**
+ * DTO real do backend (RegistroRequestDTO):
+ * - id: UUID gerado pelo frontend (@NotBlank)
+ * - senha: @Size(min=8) + @Pattern(^(?=.*[0-9])(?=.*[a-zA-Z]).*$)
+ * - Não existe campo cpfCnpj no backend.
+ * - Requer código de verificação confirmado nos últimos 30 minutos.
+ */
 export interface RegistroRequestDTO {
   id: string;
   nome: string;
@@ -72,16 +136,27 @@ export interface RegistroRequestDTO {
   senha: string;
 }
 
+export interface RegistroResponseDTO {
+  accessToken?: string;
+  token?: string;
+  usuarioId?: string;
+  nome?: string;
+  email?: string;
+  papel?: string;
+}
+
 export interface LoginRequestDTO {
   email: string;
   senha: string;
 }
 
 export interface LoginResponseDTO {
-  token: string;
+  accessToken?: string;
+  token?: string;
   usuarioId: string;
   nome: string;
-  isNovoUsuario: boolean;
+  email?: string;
+  isNovoUsuario?: boolean;
   papel: string;
 }
 
@@ -89,33 +164,39 @@ export interface LoginResponseDTO {
  * Registra um novo usuário (conta sem loja)
  * POST /auth/registrar
  */
-export async function registrar(dados: RegistroRequestDTO): Promise<{ token: string; usuarioId: string }> {
-  return requisicao<{ token: string; usuarioId: string }>('/auth/registrar', {
+export async function registrar(dados: RegistroRequestDTO): Promise<RegistroResponseDTO & { accessToken: string }> {
+  const resposta = await requisicao<RegistroResponseDTO>('/auth/registrar', {
     method: 'POST',
     body: JSON.stringify(dados),
   });
+  return { ...resposta, accessToken: extrairToken(resposta) };
 }
 
 /**
- * Realiza login
- * POST /auth/login
+ * Realiza login — POST /auth/login (público).
+ * 200: { token|accessToken, usuarioId, nome, papel, isNovoUsuario }.
+ * 401 CREDENCIAIS_INVALIDAS → toast "E-mail ou senha inválidos" (spec §3.5).
+ * 400 REGRA_DE_NEGOCIO ("Verifique seu e-mail...") → oferecer reenvio.
+ * 429 TENTATIVAS_LOGIN_EXCEDIDAS → bloqueio com temporizador.
+ * O header `Content-Type: application/json` é garantido pelo `requisicao`.
  */
-export async function login(dados: LoginRequestDTO): Promise<LoginResponseDTO> {
-  return requisicao<LoginResponseDTO>('/auth/login', {
+export async function login(dados: LoginRequestDTO): Promise<LoginResponseDTO & { accessToken: string }> {
+  const resposta = await requisicao<LoginResponseDTO>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(dados),
   });
+  return { ...resposta, accessToken: extrairToken(resposta) };
 }
 
 /**
  * Envia código de verificação de e-mail para cadastro
- * POST /auth/enviar-codigo-cadastro
- * 
- * NOTA: Este endpoint ainda não existe no backend.
- * Enquanto isso não é implementado, a etapa de confirmação de e-mail
- * deve ser pulada/ocultada no wizard de cadastro.
+ * POST /auth/enviar-codigo-cadastro (público, 200 sem corpo).
+ * Spec §3.2: cada chamada INVALIDA os códigos anteriores — o frontend
+ * sempre usa o código da última tentativa (nunca cacheia códigos antigos).
+ * 409 = e-mail já em uso · 429 = rate limit · 503 = falha Brevo.
  */
-export async function enviarCodigoCadastro(email: string): Promise<void> {
+export async function enviarCodigoCadastro(emailBruto: string): Promise<void> {
+  const email = emailBruto.trim().toLowerCase();
   return requisicao<void>('/auth/enviar-codigo-cadastro', {
     method: 'POST',
     body: JSON.stringify({ email }),
@@ -124,14 +205,73 @@ export async function enviarCodigoCadastro(email: string): Promise<void> {
 
 /**
  * Confirma e-mail no cadastro
- * POST /auth/confirmar-email-cadastro
- * 
- * NOTA: Este endpoint ainda não existe no backend.
+ * POST /auth/confirmar-email-cadastro (público, 200 sem corpo).
+ * Spec §3.3: `codigo` é SEMPRE string de 6 dígitos (preserva zeros à
+ * esquerda — nunca converter para número). Máx. 5 tentativas: no 5º
+ * erro o código é bloqueado → exigir novo envio.
+ * 400 "Código de verificação inválido." | "Código de verificação expirado."
  */
-export async function confirmarEmailCadastro(email: string, codigo: string): Promise<void> {
+export async function confirmarEmailCadastro(emailBruto: string, codigoBruto: string): Promise<void> {
+  // Spec §3.3: codigo sempre string de 6 dígitos (zeros à esquerda).
+  const email = emailBruto.trim().toLowerCase();
+  const codigo = String(codigoBruto ?? '').replace(/\D/g, '').slice(0, 6);
   return requisicao<void>('/auth/confirmar-email-cadastro', {
     method: 'POST',
     body: JSON.stringify({ email, codigo }),
+  });
+}
+
+/**
+ * Verifica se um e-mail já está cadastrado.
+ * POST /auth/checar-email — body: { email } → { existe: boolean }
+ * Uso: decidir entre o fluxo de login (existe=true) ou de cadastro (existe=false).
+ */
+export async function checarEmail(emailBruto: string): Promise<{ existe: boolean }> {
+  const email = emailBruto.trim().toLowerCase();
+  return requisicao<{ existe: boolean }>('/auth/checar-email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+// ==================== Recuperação / Alteração de senha ====================
+
+/**
+ * Solicita código de recuperação por e-mail
+ * POST /auth/esqueci-senha/email — body: { email }
+ */
+export async function esqueciSenhaEmail(email: string): Promise<void> {
+  return requisicao<void>('/auth/esqueci-senha/email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Redefine a senha com o código recebido
+ * POST /auth/redefinir-senha/email — body: { email, codigo, novaSenha }
+ * novaSenha: @Size(min=6)
+ */
+export async function redefinirSenhaEmail(
+  email: string,
+  codigo: string,
+  novaSenha: string
+): Promise<void> {
+  return requisicao<void>('/auth/redefinir-senha/email', {
+    method: 'POST',
+    body: JSON.stringify({ email, codigo, novaSenha }),
+  });
+}
+
+/**
+ * Altera a senha do usuário autenticado
+ * PUT /auth/alterar-senha — body: { senhaAtual, novaSenha }
+ * novaSenha: @Size(min=6). Erros: 401 "A senha atual informada está incorreta."
+ */
+export async function alterarSenha(senhaAtual: string, novaSenha: string): Promise<void> {
+  return requisicao<void>('/auth/alterar-senha', {
+    method: 'PUT',
+    body: JSON.stringify({ senhaAtual, novaSenha }),
   });
 }
 
@@ -187,12 +327,24 @@ export interface LojaCreateDTO {
   formasPagamento?: FormasPagamentoDTO;
 }
 
+export interface LojaResponseDTO extends LojaCreateDTO {
+  id: string;
+}
+
 /**
- * Cria uma nova loja (cadastro completo em uma chamada)
- * POST /lojas
- * 
- * NOTA: O backend exige todos os campos obrigatórios de uma vez.
- * Não há suporte a rascunho incremental via PATCH.
+ * Cria a loja do usuário logado — POST /lojas (autenticado, 201).
+ * Spec §5.3: o `usuarioId` sempre vem do token (campo no body é ignorado);
+ * após o 201 o backend promove CLIENTE → LOJISTA, então o frontend deve
+ * refazer GET /minha-loja (ou refetch do usuário) antes de entrar no painel.
+ * 400 VALIDACAO_FALHOU (Bean Validation: mensagem/detalhes por campo em
+ * `message`/`details`) · 401 sem token/token inválido.
+ *
+ * Payload completo (todos obrigatórios exceto `complemento` e os opcionais
+ * de `dadosOperacionais`/`formasPagamento`): nome, descricao, categoria,
+ * imagemUrl, isAberto, dadosOperacionais{taxaEntregaBase, tempoEntregaMin,
+ * tempoEntregaMax, entregaPropria, retiradaNoLocal, raioEntregaKm},
+ * endereco{rua, numero, cidade, estado, cep, bairro, complemento?},
+ * horarios{domingo..sabado}, formasPagamento{6 flags}.
  */
 export async function criarLoja(dados: LojaCreateDTO): Promise<{ id: string }> {
   return requisicao<{ id: string }>('/lojas', {
@@ -203,18 +355,57 @@ export async function criarLoja(dados: LojaCreateDTO): Promise<{ id: string }> {
 
 /**
  * Busca dados da loja do usuário autenticado.
- * Travado: GET /lojas/minha-loja ainda não existe no backend.
+ * GET /lojas/minha-loja (Bearer).
+ * Spec §5.1/§5.2: 404 LOJA_NAO_ENCONTRADA = usuário autenticado ainda
+ * NÃO criou loja — ESTADO VÁLIDO, retorna null (onboarding). 401 (token
+ * expirado) propaga para o logout centralizado no `requisicao`; 5xx vira
+ * toast com `requestId` logado no console.
  */
-export async function buscarMinhaLoja(): Promise<never> {
-  throw new Error('GET /lojas/minha-loja ainda não existe no backend.');
+export async function buscarMinhaLoja(): Promise<LojaResponseDTO | null> {
+  try {
+    return await requisicao<LojaResponseDTO>('/lojas/minha-loja');
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**
  * Atualiza dados da loja.
- * Travado: PUT /lojas/{id} ainda não existe no backend.
+ * PUT /lojas/{id}
  */
-export async function atualizarLoja(_id: string, _dados: Partial<LojaCreateDTO>): Promise<never> {
-  throw new Error('PUT /lojas/{id} ainda não existe no backend.');
+export async function atualizarLoja(id: string, dados: Partial<LojaCreateDTO>): Promise<LojaResponseDTO> {
+  return requisicao<LojaResponseDTO>(`/lojas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  });
+}
+
+/**
+ * Calcula frete para um endereço
+ * POST /lojas/{id}/calcular-frete
+ */
+export interface CalcularFreteRequestDTO {
+  cep: string;
+  numero?: string;
+}
+
+export interface CalcularFreteResponseDTO {
+  valorFrete: number;
+  tempoEstimadoMin?: number;
+  tempoEstimadoMax?: number;
+}
+
+export async function calcularFrete(
+  lojaId: string,
+  dados: CalcularFreteRequestDTO
+): Promise<CalcularFreteResponseDTO> {
+  return requisicao<CalcularFreteResponseDTO>(`/lojas/${lojaId}/calcular-frete`, {
+    method: 'POST',
+    body: JSON.stringify(dados),
+  });
 }
 
 // ==================== Produtos ====================
@@ -249,12 +440,21 @@ export interface GrupoAdicionalDTO {
   itens: { nome: string; preco: number }[];
 }
 
+export interface ResumoAvaliacoesDTO {
+  media: number;
+  totalAvaliacoes: number;
+}
+
 /**
  * Lista produtos da loja do lojista autenticado (paginado).
  * GET /lojista/produtos
  */
-export async function listarProdutos(): Promise<ProdutoLojistaDTO[]> {
-  const pagina = await requisicao<PaginaSpring<ProdutoLojistaDTO>>('/lojista/produtos?size=100');
+export async function listarProdutos(params?: { page?: number; size?: number }): Promise<ProdutoLojistaDTO[]> {
+  const search = new URLSearchParams();
+  search.set('size', String(params?.size ?? 100));
+  if (params?.page !== undefined) search.set('page', String(params.page));
+
+  const pagina = await requisicao<PaginaSpring<ProdutoLojistaDTO>>(`/lojista/produtos?${search.toString()}`);
   return pagina.content ?? [];
 }
 
@@ -298,6 +498,24 @@ export async function desativarProduto(id: string): Promise<void> {
   });
 }
 
+/**
+ * Ativa um produto previamente inativo
+ * PATCH /produtos/{id}/ativar
+ */
+export async function ativarProduto(id: string): Promise<void> {
+  return requisicao<void>(`/produtos/${id}/ativar`, {
+    method: 'PATCH',
+  });
+}
+
+/**
+ * Resumo de avaliações de um produto
+ * GET /produtos/{id}/avaliacoes/resumo
+ */
+export async function resumoAvaliacoesProduto(id: string): Promise<ResumoAvaliacoesDTO> {
+  return requisicao<ResumoAvaliacoesDTO>(`/produtos/${id}/avaliacoes/resumo`);
+}
+
 // ==================== Pedidos ====================
 
 export interface PedidoResumoDTO {
@@ -328,9 +546,14 @@ export interface PedidoDetalheDTO extends PedidoResumoDTO {
  * Lista pedidos recebidos pela loja do lojista autenticado (paginado).
  * GET /lojista/pedidos
  */
-export async function listarPedidos(filtros?: { status?: string }): Promise<PedidoResumoDTO[]> {
+export async function listarPedidos(filtros?: {
+  status?: string;
+  page?: number;
+  size?: number;
+}): Promise<PedidoResumoDTO[]> {
   const params = new URLSearchParams();
-  params.set('size', '100');
+  params.set('size', String(filtros?.size ?? 100));
+  if (filtros?.page !== undefined) params.set('page', String(filtros.page));
   if (filtros?.status) params.set('status', filtros.status);
 
   const pagina = await requisicao<PaginaSpring<PedidoResumoDTO>>(`/lojista/pedidos?${params.toString()}`);
@@ -340,7 +563,6 @@ export async function listarPedidos(filtros?: { status?: string }): Promise<Pedi
 /**
  * Detalhe de pedido para o lojista.
  * Travado: GET /pedidos/{id} só autoriza o cliente comprador (403 para o lojista).
- * Não existe GET /lojista/pedidos/{id} no backend ainda.
  */
 export async function buscarPedido(_id: string): Promise<never> {
   throw new Error('Detalhe de pedido para lojista ainda não existe no backend.');
@@ -349,8 +571,6 @@ export async function buscarPedido(_id: string): Promise<never> {
 /**
  * Atualiza status de um pedido
  * PATCH /pedidos/{id}/status
- * 
- * NOTA: Confirmar nome do campo de status no body (ex: { status: 'PAGO' })
  */
 export async function atualizarStatusPedido(id: string, status: string): Promise<void> {
   return requisicao<void>(`/pedidos/${id}/status`, {
@@ -372,8 +592,7 @@ export async function cancelarPedido(id: string): Promise<void> {
 // ==================== Utilitários ====================
 
 /**
- * Busca CEP via ViaCEP (proxy não existe no backend, chamamos direto)
- * GET https://viacep.com.br/ws/{cep}/json/
+ * Busca CEP via ViaCEP
  */
 export async function buscarCep(cep: string): Promise<{
   cep: string;
@@ -385,13 +604,12 @@ export async function buscarCep(cep: string): Promise<{
 }> {
   const cepLimpo = cep.replace(/\D/g, '');
   const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
-  
+
   if (!resposta.ok) {
     throw new Error('Erro ao buscar CEP');
   }
-  
+
   return resposta.json();
 }
 
-// Exporta utilitários para uso externo
-export { gerarUUID, requisicao };
+export { requisicao };

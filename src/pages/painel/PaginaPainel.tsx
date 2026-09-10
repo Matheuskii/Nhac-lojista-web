@@ -7,7 +7,8 @@ import Emblema from '../../components/ui/Emblema';
 import Toggle from '../../components/ui/Toggle';
 import { resumoFinanceiroMock, faturamentoDiarioMock } from '../../dados/financeiro';
 import { pedidosMock } from '../../dados/pedidos';
-import { lojaMock } from '../../dados/loja';
+import { useAutenticacao } from '../../hooks/useAutenticacao';
+import { useLoja } from '../../contexts/LojaContext';
 import { formatarMoeda, formatarData, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
 import { DollarSign, ShoppingBag, TrendingUp, ChevronRight, Clock, Star, ChefHat, Bike, CheckCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -15,10 +16,12 @@ import estilos from './PaginaPainel.module.css';
 
 const PaginaPainel = () => {
   const navigate = useNavigate();
-  const usuarioNome = "João";
+  const { usuario } = useAutenticacao();
+  const { loja, carregando } = useLoja();
+  const usuarioNome = usuario?.nomeCompleto?.split(' ')[0] ?? 'Lojista';
   const pedidosRecentes = pedidosMock.slice(0, 5);
 
-  const [lojaAberta, setLojaAberta] = useState(true);
+  const [lojaAberta, setLojaAberta] = useState(loja?.isAberto ?? true);
 
   // Status de pedidos mock (você pode iterar pelos pedidos ou usar dados já definidos)
   const pedidosEmPreparo = pedidosMock.filter(p => p.status === 'PREPARANDO' || p.status === 'PENDENTE' || p.status === 'PAGO').length;
@@ -32,6 +35,16 @@ const PaginaPainel = () => {
     const data = new Date(dataString);
     return `${data.getDate()}/${data.getMonth() + 1}`;
   };
+
+  if (carregando || !loja) {
+    return (
+      <LayoutPagina titulo="Painel">
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--nhac-texto-claro)' }}>
+          Carregando painel...
+        </div>
+      </LayoutPagina>
+    );
+  }
 
   return (
     <LayoutPagina titulo="Painel">
@@ -83,10 +96,10 @@ const PaginaPainel = () => {
             <div className={estilos.kpiInfo}>
               <span className={estilos.kpiRotulo}>Avaliação da Loja</span>
               <div className={estilos.avaliacaoValor}>
-                <span className={estilos.kpiValor}>{lojaMock.notaMedia}</span>
+                <span className={estilos.kpiValor}>—</span>
                 <span className={estilos.avaliacaoEstrelas}>⭐</span>
               </div>
-              <span className={estilos.avaliacaoTotal}>({lojaMock.totalAvaliacoes} avaliações)</span>
+              <span className={estilos.avaliacaoTotal}>(avaliações em breve)</span>
             </div>
           </Cartao>
         </section>

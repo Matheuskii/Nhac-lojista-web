@@ -9,11 +9,14 @@ import Toggle from '../../components/ui/Toggle';
 import { CATEGORIAS_PRODUTO } from '../../dados/categorias';
 import { formatarMoeda } from '../../utils/formatacao';
 import { Plus, Search, Edit2 } from 'lucide-react';
-import { listarProdutos, desativarProduto, ProdutoLojistaDTO } from '../../services/api';
+import { listarProdutos, desativarProduto, ativarProduto, ProdutoLojistaDTO } from '../../services/api';
+import { tratarErroApi } from '../../utils/errosApi';
+import { useToast } from '../../contexts/ToastContext';
 import estilos from './PaginaListaProdutos.module.css';
 
 const PaginaListaProdutos = () => {
   const navigate = useNavigate();
+  const { mostrarToast } = useToast();
   const [produtos, setProdutos] = useState<ProdutoLojistaDTO[]>([]);
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
@@ -38,19 +41,21 @@ const PaginaListaProdutos = () => {
   }
 
   const handleToggleAtivo = async (id: string, novoEstado: boolean) => {
-    if (novoEstado === false) {
-      // Desativar produto
-      try {
-        if (!id) return;
+    if (!id) return;
+    try {
+      if (novoEstado) {
+        await ativarProduto(id);
+      } else {
         await desativarProduto(id);
-        setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: false } : p));
-      } catch (err) {
-        alert('Erro ao desativar produto');
       }
-    } else {
-      // Ativar produto (não há endpoint específico, precisaríamos de PUT/PATCH)
-      // Por enquanto, só atualiza o estado local
-      setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: true } : p));
+      setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: novoEstado } : p));
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      if (tratado.toastGenerico) {
+        mostrarToast(tratado.mensagemGeral ?? 'Erro interno.');
+      } else {
+        mostrarToast(tratado.mensagemGeral ?? 'Erro ao alterar status do produto.');
+      }
     }
   };
 

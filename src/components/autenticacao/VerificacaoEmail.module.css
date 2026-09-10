@@ -1,0 +1,85 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.iconeWrapper {
+  display: flex;
+  justify-content: center;
+  color: var(--nhac-primaria);
+}
+
+.descricao {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--nhac-texto-claro);
+  line-height: 1.5;
+}
+
+.rotulo {
+  display: block;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--nhac-texto);
+  margin-bottom: 0.5rem;
+}
+
+.campoCodigo {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputCodigo {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.5rem;
+  text-align: center;
+  border: 1px solid var(--nhac-borda);
+  border-radius: var(--raio-input, 8px);
+  background: var(--nhac-fundo-cartao, #fff);
+  color: var(--nhac-texto);
+}
+
+.inputCodigo:focus {
+  outline: none;
+  border-color: var(--nhac-primaria);
+}
+
+.inputErro {
+  border-color: var(--nhac-erro, #e53935);
+}
+
+.erroCampo {
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--nhac-erro, #e53935);
+  margin-top: 0.375rem;
+}
+
+.erro {
+  padding: 0.75rem;
+  background: #ffebee;
+  color: var(--nhac-erro, #e53935);
+  border-radius: var(--raio-input, 8px);
+  font-size: 0.875rem;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.link {
+  color: var(--nhac-primaria);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
