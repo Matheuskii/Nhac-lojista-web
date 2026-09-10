@@ -7,9 +7,16 @@ import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Toggle from '../../components/ui/Toggle';
 import ModalConfirmacao from '../../components/ui/ModalConfirmacao';
-import { produtosMock } from '../../dados/produtos';
 import { CATEGORIAS_PRODUTO } from '../../dados/categorias';
 import { Upload, Trash2, Plus } from 'lucide-react';
+import {
+  buscarProduto,
+  criarProduto,
+  atualizarProduto,
+  desativarProduto,
+  ProdutoLojistaDTO,
+  GrupoAdicionalDTO,
+} from '../../services/api';
 import estilos from './PaginaFormularioProduto.module.css';
 
 const PaginaFormularioProduto = () => {
@@ -22,35 +29,77 @@ const PaginaFormularioProduto = () => {
   const [preco, setPreco] = useState('');
   const [categoria, setCategoria] = useState('');
   const [ativo, setAtivo] = useState(true);
-  const [adicionais, setAdicionais] = useState<any[]>([]);
+  const [fotoUrl, setFotoUrl] = useState('');
+  const [adicionais, setAdicionais] = useState<GrupoAdicionalDTO[]>([]);
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (ehEdicao) {
-      const produto = produtosMock.find(p => p.id === id);
-      if (produto) {
-        setNome(produto.nome);
-        setDescricao(produto.descricao || '');
-        setPreco(produto.preco.toString());
-        setCategoria(produto.categoria);
-        setAtivo(produto.ativo);
-      }
+      carregarProduto();
     }
   }, [ehEdicao, id]);
+
+  async function carregarProduto() {
+    try {
+      setCarregando(true);
+      setErro(null);
+      if (!id) return;
+      const produto = await buscarProduto(id);
+      setNome(produto.nome);
+      setDescricao(produto.descricao || '');
+      setPreco(produto.preco.toString());
+      setCategoria(produto.categoria);
+      setAtivo(produto.ativo);
+      setFotoUrl(produto.fotoUrl || '');
+      setAdicionais(produto.adicionais || []);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Erro ao carregar produto');
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   const opcoesCategorias = [
     { valor: '', rotulo: 'Selecione uma categoria' },
     ...CATEGORIAS_PRODUTO.map(c => ({ valor: c, rotulo: c }))
   ];
 
-  const handleSalvar = (e: React.FormEvent) => {
+  const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Produto salvo com sucesso!');
-    navigate('/produtos');
+    try {
+      const dadosProduto: ProdutoLojistaDTO = {
+        nome,
+        descricao,
+        preco: parseFloat(preco.replace(',', '.')),
+        categoria,
+        fotoUrl,
+        ativo,
+        adicionais: adicionais.length > 0 ? adicionais : undefined,
+      };
+
+      if (ehEdicao && id) {
+        await atualizarProduto(id, dadosProduto);
+        alert('Produto atualizado com sucesso!');
+      } else {
+        await criarProduto(dadosProduto);
+        alert('Produto criado com sucesso!');
+      }
+      navigate('/produtos');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao salvar produto');
+    }
   };
 
-  const handleExcluir = () => {
-    navigate('/produtos');
+  const handleExcluir = async () => {
+    try {
+      if (!id) return;
+      await desativarProduto(id);
+      navigate('/produtos');
+    } catch (err) {
+      alert('Erro ao excluir produto');
+    }
   };
 
   return (

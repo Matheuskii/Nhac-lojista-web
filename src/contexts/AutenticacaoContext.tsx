@@ -1,42 +1,30 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { Usuario, Cargo } from '../types';
+import { login, LoginResponseDTO } from '../services/api';
 
 interface ContextoAutenticacao {
   usuario: Usuario | null;
   carregando: boolean;
-  entrar: (email: string, senha: string) => Promise<boolean>;
+  entrar: (email: string, senha: string) => Promise<void>;
   sair: () => void;
   trocarCargo: (cargo: Cargo) => void;
 }
 
 export const AutenticacaoContext = createContext<ContextoAutenticacao | undefined>(undefined);
 
-const mockUsuarios: Record<string, Usuario> = {
-  'admin@nhac.com': {
-    id: 'user-001',
-    nomeCompleto: 'Carlos Eduardo Silva',
-    email: 'admin@nhac.com',
-    telefone: '11998765432',
-    cargo: 'administrador',
-    lojaId: 'loja-001',
-  },
-  'gerente@nhac.com': {
-    id: 'user-002',
-    nomeCompleto: 'Ana Julia Pereira',
-    email: 'gerente@nhac.com',
-    telefone: '11987654321',
-    cargo: 'gerente',
-    lojaId: 'loja-001',
-  },
-  'atendente@nhac.com': {
-    id: 'user-003',
-    nomeCompleto: 'Lucas Souza',
-    email: 'atendente@nhac.com',
-    telefone: '11976543210',
-    cargo: 'atendente',
-    lojaId: 'loja-001',
-  }
-};
+/**
+ * Converte a resposta do login da API para o formato Usuario do frontend
+ */
+function converterUsuarioApi(usuarioApi: LoginResponseDTO, token: string): Usuario {
+  return {
+    id: usuarioApi.usuarioId,
+    nomeCompleto: usuarioApi.nome,
+    email: '', // O backend não retorna email no login, teríamos que buscar separadamente
+    telefone: '',
+    cargo: usuarioApi.papel as Cargo || 'administrador',
+    lojaId: '', // Será preenchido quando buscarmos os dados da loja
+  };
+}
 
 export const ProvedorAutenticacao: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -44,33 +32,38 @@ export const ProvedorAutenticacao: React.FC<{ children: ReactNode }> = ({ childr
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem('@nhac:usuario');
-    if (usuarioSalvo) {
+    const tokenSalvo = localStorage.getItem('@nhac:token');
+    
+    if (usuarioSalvo && tokenSalvo) {
       setUsuario(JSON.parse(usuarioSalvo));
     }
     setCarregando(false);
   }, []);
 
-  const entrar = async (email: string, senha: string): Promise<boolean> => {
+  const entrar = async (email: string, senha: string): Promise<void> => {
     setCarregando(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (senha === '123456' && mockUsuarios[email]) {
-          const user = mockUsuarios[email];
-          setUsuario(user);
-          localStorage.setItem('@nhac:usuario', JSON.stringify(user));
-          setCarregando(false);
-          resolve(true);
-        } else {
-          setCarregando(false);
-          resolve(false);
-        }
-      }, 800);
-    });
+    try {
+      const resposta = await login({ email, senha });
+      
+      // Salva token
+      localStorage.setItem('@nhac:token', resposta.token);
+      
+      // Converte e salva usuário
+      const usuarioFormatado = converterUsuarioApi(resposta, resposta.token);
+      setUsuario(usuarioFormatado);
+      localStorage.setItem('@nhac:usuario', JSON.stringify(usuarioFormatado));
+      
+    } catch (erro: any) {
+      throw new Error(erro.message || 'E-mail ou senha incorretos.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const sair = () => {
     setUsuario(null);
     localStorage.removeItem('@nhac:usuario');
+    localStorage.removeItem('@nhac:token');
   };
 
   const trocarCargo = (cargo: Cargo) => {
