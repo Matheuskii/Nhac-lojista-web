@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import InputTexto from '../../components/ui/InputTexto';
@@ -6,20 +6,52 @@ import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Emblema from '../../components/ui/Emblema';
 import Toggle from '../../components/ui/Toggle';
-import { produtosMock } from '../../dados/produtos';
 import { CATEGORIAS_PRODUTO } from '../../dados/categorias';
 import { formatarMoeda } from '../../utils/formatacao';
 import { Plus, Search, Edit2 } from 'lucide-react';
+import { listarProdutos, desativarProduto, ProdutoLojistaDTO } from '../../services/api';
 import estilos from './PaginaListaProdutos.module.css';
 
 const PaginaListaProdutos = () => {
   const navigate = useNavigate();
-  const [produtos, setProdutos] = useState(produtosMock);
+  const [produtos, setProdutos] = useState<ProdutoLojistaDTO[]>([]);
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const handleToggleAtivo = (id: string, novoEstado: boolean) => {
-    setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: novoEstado } : p));
+  useEffect(() => {
+    carregarProdutos();
+  }, []);
+
+  async function carregarProdutos() {
+    try {
+      setCarregando(true);
+      setErro(null);
+      const dados = await listarProdutos();
+      setProdutos(dados);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Erro ao carregar produtos');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  const handleToggleAtivo = async (id: string, novoEstado: boolean) => {
+    if (novoEstado === false) {
+      // Desativar produto
+      try {
+        if (!id) return;
+        await desativarProduto(id);
+        setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: false } : p));
+      } catch (err) {
+        alert('Erro ao desativar produto');
+      }
+    } else {
+      // Ativar produto (não há endpoint específico, precisaríamos de PUT/PATCH)
+      // Por enquanto, só atualiza o estado local
+      setProdutos(produtos.map(p => p.id === id ? { ...p, ativo: true } : p));
+    }
   };
 
   const produtosFiltrados = produtos.filter(p => {
@@ -72,7 +104,15 @@ const PaginaListaProdutos = () => {
           </div>
         </div>
 
-        {produtosFiltrados.length === 0 ? (
+        {carregando ? (
+          <div className={estilos.vazio}>
+            <p>Carregando produtos...</p>
+          </div>
+        ) : erro ? (
+          <div className={estilos.vazio}>
+            <p>{erro}</p>
+          </div>
+        ) : produtosFiltrados.length === 0 ? (
           <div className={estilos.vazio}>
             <p>Nenhum produto encontrado.</p>
           </div>
@@ -93,7 +133,7 @@ const PaginaListaProdutos = () => {
                     <div className={estilos.acoes}>
                       <Toggle 
                         ativo={produto.ativo} 
-                        aoMudar={(v) => handleToggleAtivo(produto.id, v)} 
+                        aoMudar={(v) => produto.id && handleToggleAtivo(produto.id, v)} 
                         rotulo={produto.ativo ? 'Ativo' : 'Inativo'}
                       />
                       <Botao 

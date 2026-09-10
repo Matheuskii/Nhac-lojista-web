@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Cartao from '../../components/ui/Cartao';
 import Botao from '../../components/ui/Botao';
 import Emblema from '../../components/ui/Emblema';
-import { pedidosMock } from '../../dados/pedidos';
 import { StatusPedido } from '../../types';
 import { formatarMoeda, formatarDataHora, STATUS_PEDIDO_INFO, FLUXO_STATUS_PEDIDO } from '../../utils/formatacao';
 import { ArrowLeft, User, Phone, MapPin, CreditCard, Check } from 'lucide-react';
+import { buscarPedido, atualizarStatusPedido, PedidoDetalheDTO } from '../../services/api';
 import estilos from './PaginaDetalhePedido.module.css';
 
 const ROTULOS_ETAPA: Record<string, string> = {
@@ -21,28 +21,64 @@ const ROTULOS_ETAPA: Record<string, string> = {
 const PaginaDetalhePedido = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const pedidoOriginal = useMemo(() => pedidosMock.find(p => p.id === id), [id]);
-  const [status, setStatus] = useState<StatusPedido | undefined>(pedidoOriginal?.status);
+  const [pedido, setPedido] = useState<PedidoDetalheDTO | null>(null);
+  const [status, setStatus] = useState<StatusPedido | undefined>(undefined);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  if (!pedidoOriginal) {
+  useEffect(() => {
+    carregarPedido();
+  }, [id]);
+
+  async function carregarPedido() {
+    try {
+      setCarregando(true);
+      setErro(null);
+      if (!id) return;
+      const dados = await buscarPedido(id);
+      setPedido(dados);
+      setStatus(dados.status as StatusPedido);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Erro ao carregar pedido');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  if (carregando) {
     return (
       <LayoutPagina titulo="Pedido">
         <div className={estilos.naoEncontrado}>
-          <p>Pedido não encontrado.</p>
+          <p>Carregando pedido...</p>
+        </div>
+      </LayoutPagina>
+    );
+  }
+
+  if (erro || !pedido) {
+    return (
+      <LayoutPagina titulo="Pedido">
+        <div className={estilos.naoEncontrado}>
+          <p>{erro || 'Pedido não encontrado.'}</p>
           <Botao variante="secundario" onClick={() => navigate('/pedidos')}>Voltar para pedidos</Botao>
         </div>
       </LayoutPagina>
     );
   }
 
-  const pedido = pedidoOriginal;
   const statusInfo = STATUS_PEDIDO_INFO[status ?? pedido.status];
   const indiceAtual = FLUXO_STATUS_PEDIDO.indexOf((status ?? pedido.status) as typeof FLUXO_STATUS_PEDIDO[number]);
   const cancelado = status === 'cancelado';
 
-  const handleSalvarStatus = () => {
-    alert(`Status do pedido #${pedido.numeroPedido} atualizado para "${STATUS_PEDIDO_INFO[status ?? pedido.status].rotulo}".`);
-    navigate('/pedidos');
+  const handleSalvarStatus = async () => {
+    try {
+      if (!id || !status) return;
+      await atualizarStatusPedido(id, status);
+      alert(`Status do pedido #${pedido.numeroPedido} atualizado para "${STATUS_PEDIDO_INFO[status].rotulo}".`);
+      navigate('/pedidos');
+    } catch (err) {
+      alert('Erro ao atualizar status do pedido');
+    }
   };
 
   return (

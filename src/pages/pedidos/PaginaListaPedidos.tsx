@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Cartao from '../../components/ui/Cartao';
 import Emblema from '../../components/ui/Emblema';
-import { pedidosMock } from '../../dados/pedidos';
 import { StatusPedido } from '../../types';
 import { formatarMoeda, formatarHora, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
 import { Bell, ChevronRight } from 'lucide-react';
+import { listarPedidos, PedidoResumoDTO } from '../../services/api';
 import estilos from './PaginaListaPedidos.module.css';
 
 interface FiltroTag {
-  valor: StatusPedido | 'todos';
+  valor: StatusPedido | 'todos' | string;
   rotulo: string;
 }
 
@@ -25,11 +25,31 @@ const FILTROS: FiltroTag[] = [
 const PaginaListaPedidos = () => {
   const navigate = useNavigate();
   const [filtro, setFiltro] = useState<FiltroTag['valor']>('todos');
+  const [pedidos, setPedidos] = useState<PedidoResumoDTO[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    carregarPedidos();
+  }, []);
+
+  async function carregarPedidos() {
+    try {
+      setCarregando(true);
+      setErro(null);
+      const dados = await listarPedidos();
+      setPedidos(dados);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Erro ao carregar pedidos');
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   const contagemPorFiltro = (valor: FiltroTag['valor']) =>
-    valor === 'todos' ? pedidosMock.length : pedidosMock.filter(p => p.status === valor).length;
+    valor === 'todos' ? pedidos.length : pedidos.filter(p => p.status === valor).length;
 
-  const pedidosFiltrados = pedidosMock
+  const pedidosFiltrados = pedidos
     .filter(p => filtro === 'todos' || p.status === filtro)
     .sort((a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime());
 
@@ -56,7 +76,15 @@ const PaginaListaPedidos = () => {
           ))}
         </div>
 
-        {pedidosFiltrados.length === 0 ? (
+        {carregando ? (
+          <div className={estilos.vazio}>
+            <p>Carregando pedidos...</p>
+          </div>
+        ) : erro ? (
+          <div className={estilos.vazio}>
+            <p>{erro}</p>
+          </div>
+        ) : pedidosFiltrados.length === 0 ? (
           <div className={estilos.vazio}>
             <p>Nenhum pedido nesse status.</p>
           </div>
@@ -64,7 +92,7 @@ const PaginaListaPedidos = () => {
           <div className={estilos.lista}>
             {pedidosFiltrados.map(pedido => {
               const statusInfo = STATUS_PEDIDO_INFO[pedido.status];
-              const totalItens = pedido.itens.reduce((soma, item) => soma + item.quantidade, 0);
+              // totalItens não disponível no PedidoResumoDTO
               return (
                 <Cartao
                   key={pedido.id}
@@ -78,7 +106,7 @@ const PaginaListaPedidos = () => {
                     </div>
                     <span className={estilos.cliente}>{pedido.clienteNome}</span>
                     <span className={estilos.detalhe}>
-                      {totalItens} {totalItens === 1 ? 'item' : 'itens'} · {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.dataCriacao)}
+                      {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.dataCriacao)}
                     </span>
                   </div>
                   <ChevronRight size={20} className={estilos.seta} />
