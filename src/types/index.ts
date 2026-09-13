@@ -84,15 +84,15 @@ export interface DadosCadastroEtapa2 {
   categoriaLoja: string;
 }
 
-export interface DadosCadastroEtapa3 extends Endereco {}
+export type DadosCadastroEtapa3 = Endereco;
 
-export interface DadosCadastroEtapa4 extends DadosEntrega {}
+export type DadosCadastroEtapa4 = DadosEntrega;
 
 export interface DadosCadastroEtapa5 {
   horarios: HorarioDia[];
 }
 
-export interface DadosCadastroEtapa6 extends FormasPagamento {}
+export type DadosCadastroEtapa6 = FormasPagamento;
 
 // ==================== Produtos ====================
 

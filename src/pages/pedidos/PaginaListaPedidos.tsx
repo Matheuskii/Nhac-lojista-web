@@ -6,7 +6,7 @@ import Emblema from '../../components/ui/Emblema';
 import { StatusPedido } from '../../types';
 import { formatarMoeda, formatarHora, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
 import { Bell, ChevronRight } from 'lucide-react';
-import { listarPedidos, PedidoResumoDTO } from '../../services/api';
+import { listarPedidos, PedidoResumoLojistaDTO } from '../../services/api';
 import estilos from './PaginaListaPedidos.module.css';
 
 interface FiltroTag {
@@ -26,7 +26,7 @@ const FILTROS: FiltroTag[] = [
 const PaginaListaPedidos = () => {
   const navigate = useNavigate();
   const [filtro, setFiltro] = useState<FiltroTag['valor']>('todos');
-  const [pedidos, setPedidos] = useState<PedidoResumoDTO[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoResumoLojistaDTO[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -93,7 +93,6 @@ const PaginaListaPedidos = () => {
           <div className={estilos.lista}>
             {pedidosFiltrados.map(pedido => {
               const statusInfo = STATUS_PEDIDO_INFO[pedido.status] ?? { rotulo: pedido.status, variante: 'neutro' as const };
-              // totalItens não disponível no PedidoResumoDTO
               return (
                 <Cartao
                   key={pedido.id}
@@ -105,9 +104,9 @@ const PaginaListaPedidos = () => {
                       <span className={estilos.codigo}>#{pedido.id.slice(0, 8)}</span>
                       <Emblema variante={statusInfo.variante}>{statusInfo.rotulo}</Emblema>
                     </div>
-                    <span className={estilos.cliente}>{pedido.lojaNome || 'Pedido'}</span>
+                    <span className={estilos.cliente}>{pedido.clienteNome}</span>
                     <span className={estilos.detalhe}>
-                      {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.criadoEm)}
+                      {pedido.quantidadeItens} {pedido.quantidadeItens === 1 ? 'item' : 'itens'} · {formatarMoeda(pedido.valorTotal)} · {formatarHora(pedido.criadoEm)}
                     </span>
                   </div>
                   <ChevronRight size={20} className={estilos.seta} />

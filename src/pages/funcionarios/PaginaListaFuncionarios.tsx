@@ -1,20 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Botao from '../../components/ui/Botao';
 import Cartao from '../../components/ui/Cartao';
 import Avatar from '../../components/ui/Avatar';
 import Emblema from '../../components/ui/Emblema';
-import { funcionariosMock } from '../../dados/funcionarios';
+import ModalConfirmacao from '../../components/ui/ModalConfirmacao';
+import { listarFuncionarios, desativarFuncionario, reativarFuncionario, FuncionarioResponseDTO } from '../../services/api';
+import { tratarErroApi } from '../../utils/errosApi';
+import { useToast } from '../../contexts/ToastContext';
 import { formatarData } from '../../utils/formatacao';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, RotateCcw } from 'lucide-react';
 import estilos from './PaginaListaFuncionarios.module.css';
 
 const PaginaListaFuncionarios = () => {
   const navigate = useNavigate();
-  const [funcionarios, setFuncionarios] = useState(funcionariosMock);
+  const { mostrarToast } = useToast();
+  const [funcionarios, setFuncionarios] = useState<FuncionarioResponseDTO[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState<string | null>(null);
 
-  const getCorCargo = (cargo: string) => {
+  const carregar = useCallback(async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+      const dados = await listarFuncionarios();
+      setFuncionarios(dados);
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      setErro(tratado.mensagemGeral ?? 'Não foi possível carregar os funcionários.');
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const getCorCargo = (cargo: string): 'info' | 'aviso' | 'neutro' => {
     switch (cargo.toLowerCase()) {
       case 'administrador': return 'info';
       case 'gerente': return 'aviso';
@@ -22,9 +47,27 @@ const PaginaListaFuncionarios = () => {
     }
   };
 
-  const handleExcluir = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este funcionário?')) {
-      setFuncionarios(funcionarios.filter(f => f.id !== id));
+  const handleExcluir = async (id: string) => {
+    try {
+      await desativarFuncionario(id);
+      setFuncionarios(funcionarios.map(f => f.id === id ? { ...f, ativo: false } : f));
+      mostrarToast('Funcionário desativado.');
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      mostrarToast(tratado.mensagemGeral ?? 'Não foi possível desativar o funcionário.');
+    } finally {
+      setConfirmandoExclusao(null);
+    }
+  };
+
+  const handleReativar = async (id: string) => {
+    try {
+      await reativarFuncionario(id);
+      setFuncionarios(funcionarios.map(f => f.id === id ? { ...f, ativo: true } : f));
+      mostrarToast('Funcionário reativado.');
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      mostrarToast(tratado.mensagemGeral ?? 'Não foi possível reativar o funcionário.');
     }
   };
 
@@ -38,86 +81,115 @@ const PaginaListaFuncionarios = () => {
           </Botao>
         </header>
 
-        <Cartao className={estilos.tabelaCartao}>
-          <div className={estilos.responsivoTabela}>
-            <table className={estilos.tabela}>
-              <thead>
-                <tr>
-                  <th>Funcionário</th>
-                  <th>Contato</th>
-                  <th>Cargo</th>
-                  <th>Status</th>
-                  <th>Data de Cadastro</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {funcionarios.map(func => (
-                  <tr key={func.id}>
-                    <td>
-                      <div className={estilos.infoUsuario}>
-                        <Avatar nome={func.nomeCompleto} fotoUrl={func.fotoUrl} tamanho="pequeno" />
-                        <span className={estilos.nome}>{func.nomeCompleto}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={estilos.contato}>
-                        <span className={estilos.email}>{func.email}</span>
-                        <span className={estilos.telefone}>{func.telefone}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Emblema variante={getCorCargo(func.cargo) as any}>{func.cargo}</Emblema>
-                    </td>
-                    <td>
-                      <Emblema variante={func.ativo ? 'sucesso' : 'erro'}>
-                        {func.ativo ? 'Ativo' : 'Inativo'}
-                      </Emblema>
-                    </td>
-                    <td>{formatarData(func.dataCadastro)}</td>
-                    <td>
-                      <div className={estilos.acoes}>
-                        <Botao variante="fantasma" icone={<Edit2 size={18} />} onClick={() => navigate(`/funcionarios/${func.id}`)} />
-                        <Botao variante="perigo" icone={<Trash2 size={18} />} onClick={() => handleExcluir(func.id)} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {carregando ? (
+          <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--nhac-texto-claro)' }}>Carregando...</p>
+        ) : erro ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--nhac-texto-claro)' }}>
+            <p>{erro}</p>
+            <Botao variante="secundario" onClick={carregar}>Tentar novamente</Botao>
           </div>
-          
-          <div className={estilos.listaMobile}>
-            {funcionarios.map(func => (
-              <div key={func.id} className={estilos.cartaoMobile}>
-                <div className={estilos.cabecalhoMobile}>
-                  <div className={estilos.infoUsuario}>
-                    <Avatar nome={func.nomeCompleto} fotoUrl={func.fotoUrl} tamanho="medio" />
-                    <div>
-                      <div className={estilos.nome}>{func.nomeCompleto}</div>
-                      <div className={estilos.email}>{func.email}</div>
+        ) : (
+          <Cartao className={estilos.tabelaCartao}>
+            <div className={estilos.responsivoTabela}>
+              <table className={estilos.tabela}>
+                <thead>
+                  <tr>
+                    <th>Funcionário</th>
+                    <th>Contato</th>
+                    <th>Cargo</th>
+                    <th>Status</th>
+                    <th>Data de Cadastro</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {funcionarios.length === 0 ? (
+                    <tr><td colSpan={6}>Nenhum funcionário cadastrado ainda.</td></tr>
+                  ) : funcionarios.map(func => (
+                    <tr key={func.id}>
+                      <td>
+                        <div className={estilos.infoUsuario}>
+                          <Avatar nome={func.nomeCompleto} fotoUrl={func.fotoUrl} tamanho="pequeno" />
+                          <span className={estilos.nome}>{func.nomeCompleto}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className={estilos.contato}>
+                          <span className={estilos.email}>{func.email}</span>
+                          <span className={estilos.telefone}>{func.telefone}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <Emblema variante={getCorCargo(func.cargo)}>{func.cargo}</Emblema>
+                      </td>
+                      <td>
+                        <Emblema variante={func.ativo ? 'sucesso' : 'erro'}>
+                          {func.ativo ? 'Ativo' : 'Inativo'}
+                        </Emblema>
+                      </td>
+                      <td>{formatarData(func.dataCadastro)}</td>
+                      <td>
+                        <div className={estilos.acoes}>
+                          <Botao variante="fantasma" icone={<Edit2 size={18} />} onClick={() => navigate(`/funcionarios/${func.id}`)} />
+                          {func.ativo ? (
+                            <Botao variante="perigo" icone={<Trash2 size={18} />} onClick={() => setConfirmandoExclusao(func.id)} />
+                          ) : (
+                            <Botao variante="secundario" icone={<RotateCcw size={18} />} onClick={() => handleReativar(func.id)} />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={estilos.listaMobile}>
+              {funcionarios.map(func => (
+                <div key={func.id} className={estilos.cartaoMobile}>
+                  <div className={estilos.cabecalhoMobile}>
+                    <div className={estilos.infoUsuario}>
+                      <Avatar nome={func.nomeCompleto} fotoUrl={func.fotoUrl} tamanho="medio" />
+                      <div>
+                        <div className={estilos.nome}>{func.nomeCompleto}</div>
+                        <div className={estilos.email}>{func.email}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={estilos.corpoMobile}>
+                    <div className={estilos.detalheMobile}>
+                      <span className={estilos.rotulo}>Cargo:</span>
+                      <Emblema variante={getCorCargo(func.cargo)}>{func.cargo}</Emblema>
+                    </div>
+                    <div className={estilos.detalheMobile}>
+                      <span className={estilos.rotulo}>Status:</span>
+                      <Emblema variante={func.ativo ? 'sucesso' : 'erro'}>{func.ativo ? 'Ativo' : 'Inativo'}</Emblema>
+                    </div>
+                    <div className={estilos.acoesMobile}>
+                      <Botao variante="secundario" onClick={() => navigate(`/funcionarios/${func.id}`)}>Editar</Botao>
+                      {func.ativo ? (
+                        <Botao variante="perigo" onClick={() => setConfirmandoExclusao(func.id)}>Excluir</Botao>
+                      ) : (
+                        <Botao variante="secundario" onClick={() => handleReativar(func.id)}>Reativar</Botao>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className={estilos.corpoMobile}>
-                  <div className={estilos.detalheMobile}>
-                    <span className={estilos.rotulo}>Cargo:</span>
-                    <Emblema variante={getCorCargo(func.cargo) as any}>{func.cargo}</Emblema>
-                  </div>
-                  <div className={estilos.detalheMobile}>
-                    <span className={estilos.rotulo}>Status:</span>
-                    <Emblema variante={func.ativo ? 'sucesso' : 'erro'}>{func.ativo ? 'Ativo' : 'Inativo'}</Emblema>
-                  </div>
-                  <div className={estilos.acoesMobile}>
-                    <Botao variante="secundario" onClick={() => navigate(`/funcionarios/${func.id}`)}>Editar</Botao>
-                    <Botao variante="perigo" onClick={() => handleExcluir(func.id)}>Excluir</Botao>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Cartao>
+              ))}
+            </div>
+          </Cartao>
+        )}
       </div>
+
+      <ModalConfirmacao
+        aberto={confirmandoExclusao !== null}
+        titulo="Desativar funcionário"
+        mensagem="Isso bloqueia o login desse funcionário imediatamente. Tem certeza?"
+        textoBotaoConfirmar="Desativar"
+        varianteBotaoConfirmar="perigo"
+        aoConfirmar={() => confirmandoExclusao && handleExcluir(confirmandoExclusao)}
+        aoCancelar={() => setConfirmandoExclusao(null)}
+      />
     </LayoutPagina>
   );
 };

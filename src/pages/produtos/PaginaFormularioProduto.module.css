@@ -4,6 +4,17 @@
   gap: 24px;
 }
 
+.status {
+  color: var(--nhac-texto-claro);
+}
+
+.erro {
+  color: var(--nhac-erro);
+  background-color: var(--nhac-erro-fundo);
+  border-radius: var(--raio-pequeno);
+  padding: 12px 16px;
+}
+
 .container {
   display: flex;
   flex-direction: column;

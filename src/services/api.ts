@@ -374,9 +374,12 @@ export async function buscarMinhaLoja(): Promise<LojaResponseDTO | null> {
 
 /**
  * Atualiza dados da loja.
- * PUT /lojas/{id}
+ * PUT /lojas/{id} — o backend exige o payload COMPLETO (não aceita parcial).
+ * Por isso a assinatura pede LojaCreateDTO inteiro: quem chamar deve montar
+ * o objeto completo (normalmente espalhando a loja já carregada do contexto
+ * e sobrescrevendo só os campos que mudaram), nunca só os campos editados.
  */
-export async function atualizarLoja(id: string, dados: Partial<LojaCreateDTO>): Promise<LojaResponseDTO> {
+export async function atualizarLoja(id: string, dados: LojaCreateDTO): Promise<LojaResponseDTO> {
   return requisicao<LojaResponseDTO>(`/lojas/${id}`, {
     method: 'PUT',
     body: JSON.stringify(dados),
@@ -518,28 +521,58 @@ export async function resumoAvaliacoesProduto(id: string): Promise<ResumoAvaliac
 
 // ==================== Pedidos ====================
 
-export interface PedidoResumoDTO {
+/**
+ * GET /lojista/pedidos — desde a correção do backend (Round 20), retorna
+ * clienteNome + quantidadeItens em vez de lojaId/lojaNome (que eram sempre
+ * a própria loja de quem está logado — inútil e causava o bug de mostrar o
+ * nome da loja no lugar do cliente na listagem).
+ */
+export interface PedidoResumoLojistaDTO {
   id: string;
-  lojaId: string;
-  lojaNome: string;
+  clienteNome: string;
+  quantidadeItens: number;
   valorTotal: number;
   status: string;
   criadoEm: string;
 }
 
-export interface PedidoDetalheDTO extends PedidoResumoDTO {
-  itens: {
-    produtoId: string;
-    nomeProduto: string;
-    quantidade: number;
-    precoUnitario: number;
-    adicionais?: string[];
-  }[];
+export interface EnderecoEntregaPedidoDTO {
+  rua: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  complemento?: string;
+}
+
+export interface ItemPedidoDTO {
+  id: string;
+  produtoId: string;
+  nome: string;
+  imagemUrl?: string;
+  preco: number;
+  quantidade: number;
+}
+
+/**
+ * GET /lojista/pedidos/{id} — novo nesta rodada (antes não existia; GET
+ * /pedidos/{id} só autorizava o cliente comprador). Já vem com clienteNome/
+ * clienteTelefone, que o lojista precisa pra atender o pedido.
+ */
+export interface PedidoDetalheLojistaDTO {
+  id: string;
+  clienteNome: string;
+  clienteTelefone: string | null;
+  valorTotal: number;
+  taxaFrete: number;
   formaPagamento: string;
-  enderecoEntrega: string;
-  clienteNome?: string;
-  clienteTelefone?: string;
-  observacoes?: string;
+  trocoPara: number | null;
+  observacao: string | null;
+  status: string;
+  criadoEm: string;
+  enderecoEntrega: EnderecoEntregaPedidoDTO | null;
+  itens: ItemPedidoDTO[];
 }
 
 /**
@@ -550,27 +583,29 @@ export async function listarPedidos(filtros?: {
   status?: string;
   page?: number;
   size?: number;
-}): Promise<PedidoResumoDTO[]> {
+}): Promise<PedidoResumoLojistaDTO[]> {
   const params = new URLSearchParams();
   params.set('size', String(filtros?.size ?? 100));
   if (filtros?.page !== undefined) params.set('page', String(filtros.page));
   if (filtros?.status) params.set('status', filtros.status);
 
-  const pagina = await requisicao<PaginaSpring<PedidoResumoDTO>>(`/lojista/pedidos?${params.toString()}`);
+  const pagina = await requisicao<PaginaSpring<PedidoResumoLojistaDTO>>(`/lojista/pedidos?${params.toString()}`);
   return pagina.content ?? [];
 }
 
 /**
  * Detalhe de pedido para o lojista.
- * Travado: GET /pedidos/{id} só autoriza o cliente comprador (403 para o lojista).
+ * GET /lojista/pedidos/{id} — novo nesta rodada.
  */
-export async function buscarPedido(_id: string): Promise<never> {
-  throw new Error('Detalhe de pedido para lojista ainda não existe no backend.');
+export async function buscarPedido(id: string): Promise<PedidoDetalheLojistaDTO> {
+  return requisicao<PedidoDetalheLojistaDTO>(`/lojista/pedidos/${id}`);
 }
 
 /**
  * Atualiza status de um pedido
  * PATCH /pedidos/{id}/status
+ * (O cancelamento pelo painel passa por aqui com status "CANCELADO" — o
+ * backend agora devolve o estoque nesse caminho também, ver Round 20.)
  */
 export async function atualizarStatusPedido(id: string, status: string): Promise<void> {
   return requisicao<void>(`/pedidos/${id}/status`, {
@@ -585,6 +620,208 @@ export async function atualizarStatusPedido(id: string, status: string): Promise
  */
 export async function cancelarPedido(id: string): Promise<void> {
   return requisicao<void>(`/pedidos/${id}/cancelar`, {
+    method: 'PATCH',
+  });
+}
+
+// ==================== Funcionários ====================
+// Novo nesta rodada (Round 20): funcionário é uma conta com login próprio,
+// cargo é só rótulo (sem RBAC real), o lojista define a senha no cadastro.
+
+export interface FuncionarioResponseDTO {
+  id: string;
+  nomeCompleto: string;
+  email: string;
+  telefone: string;
+  cargo: string;
+  fotoUrl?: string;
+  ativo: boolean;
+  dataCadastro: string;
+}
+
+export interface FuncionarioCreateDTO {
+  nome: string;
+  email: string;
+  telefone: string;
+  senha: string;
+  cargo: string;
+}
+
+export interface FuncionarioUpdateDTO {
+  nome: string;
+  telefone?: string;
+  cargo: string;
+  imagemUrl?: string;
+}
+
+/** GET /lojista/funcionarios */
+export async function listarFuncionarios(): Promise<FuncionarioResponseDTO[]> {
+  const pagina = await requisicao<PaginaSpring<FuncionarioResponseDTO>>('/lojista/funcionarios?size=100');
+  return pagina.content ?? [];
+}
+
+/** POST /lojista/funcionarios — restrito ao dono da loja */
+export async function criarFuncionario(dados: FuncionarioCreateDTO): Promise<FuncionarioResponseDTO> {
+  return requisicao<FuncionarioResponseDTO>('/lojista/funcionarios', {
+    method: 'POST',
+    body: JSON.stringify(dados),
+  });
+}
+
+/** PUT /lojista/funcionarios/{id} — não altera e-mail nem senha */
+export async function atualizarFuncionario(id: string, dados: FuncionarioUpdateDTO): Promise<FuncionarioResponseDTO> {
+  return requisicao<FuncionarioResponseDTO>(`/lojista/funcionarios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  });
+}
+
+/** DELETE /lojista/funcionarios/{id} — soft delete, já bloqueia login */
+export async function desativarFuncionario(id: string): Promise<void> {
+  return requisicao<void>(`/lojista/funcionarios/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+/** PATCH /lojista/funcionarios/{id}/ativar */
+export async function reativarFuncionario(id: string): Promise<FuncionarioResponseDTO> {
+  return requisicao<FuncionarioResponseDTO>(`/lojista/funcionarios/${id}/ativar`, {
+    method: 'PATCH',
+  });
+}
+
+// ==================== Painel (Dashboard) ====================
+// Novo nesta rodada (Round 20). GET /lojista/painel.
+
+export interface FaturamentoDiaDTO {
+  data: string;
+  valor: number;
+}
+
+export interface PainelResumoDTO {
+  lojaAberta: boolean;
+  faturamentoHoje: number;
+  pedidosEmPreparo: number;
+  pedidosACaminho: number;
+  pedidosConcluidosHoje: number;
+  faturamentoUltimos7Dias: FaturamentoDiaDTO[];
+  pedidosRecentes: PedidoResumoLojistaDTO[];
+}
+
+/** GET /lojista/painel */
+export async function buscarPainel(): Promise<PainelResumoDTO> {
+  return requisicao<PainelResumoDTO>('/lojista/painel');
+}
+
+// ==================== Financeiro ====================
+// Novo nesta rodada (Round 20). GET /lojista/financeiro?periodo=...
+// Atenção: o backend expõe faturamentoPeriodo (um valor só, referente ao
+// período selecionado), não faturamentoDia + faturamentoMes simultâneos
+// como o mock antigo do frontend tinha — por isso o tipo aqui é o contrato
+// real da API, não o antigo `ResumoFinanceiro` de `types/index.ts`.
+
+export type PeriodoFinanceiro = 'HOJE' | 'SETE_DIAS' | 'TRINTA_DIAS';
+
+export interface ResumoFinanceiroDTO {
+  faturamentoPeriodo: number;
+  numeroPedidos: number;
+  ticketMedio: number;
+  taxaCancelamentoPercentual: number;
+}
+
+export interface PedidosPorDiaSemanaDTO {
+  diaSemana: string;
+  quantidade: number;
+}
+
+export interface VendasPorCategoriaDTO {
+  categoria: string;
+  valor: number;
+  percentual: number;
+}
+
+export interface VendasPorPagamentoDTO {
+  formaPagamento: string;
+  valor: number;
+  percentual: number;
+}
+
+export interface ProdutoMaisVendidoDTO {
+  produtoId: string;
+  nome: string;
+  quantidadeVendida: number;
+  faturamento: number;
+}
+
+export interface PedidosPorHoraDTO {
+  hora: number;
+  quantidade: number;
+}
+
+export interface FinanceiroDTO {
+  periodo: string;
+  resumo: ResumoFinanceiroDTO;
+  faturamentoDiario: FaturamentoDiaDTO[];
+  pedidosPorDiaSemana: PedidosPorDiaSemanaDTO[];
+  vendasPorCategoria: VendasPorCategoriaDTO[];
+  vendasPorFormaPagamento: VendasPorPagamentoDTO[];
+  produtosMaisVendidos: ProdutoMaisVendidoDTO[];
+  pedidosPorHora: PedidosPorHoraDTO[];
+}
+
+/** GET /lojista/financeiro?periodo=HOJE|SETE_DIAS|TRINTA_DIAS */
+export async function buscarFinanceiro(periodo: PeriodoFinanceiro): Promise<FinanceiroDTO> {
+  return requisicao<FinanceiroDTO>(`/lojista/financeiro?periodo=${periodo}`);
+}
+
+// ==================== Chat (histórico via REST) ====================
+// Novo nesta rodada (Round 20). Envio de mensagem em tempo real é via
+// WebSocket — ver services/chatSocket.ts. Isso aqui é só o histórico e a
+// listagem de conversas.
+
+export type RemetenteTipo = 'CLIENTE' | 'LOJA';
+
+export interface ConversaResumoDTO {
+  id: string;
+  clienteId: string;
+  clienteNome: string;
+  ultimaMensagemPreview: string | null;
+  ultimaMensagemEm: string;
+  naoLidas: number;
+}
+
+export interface MensagemDTO {
+  id: string;
+  conversaId: string;
+  remetenteTipo: RemetenteTipo;
+  remetenteUsuarioId: string;
+  conteudo: string;
+  enviadaEm: string;
+}
+
+/** GET /lojista/conversas */
+export async function listarConversas(): Promise<ConversaResumoDTO[]> {
+  const pagina = await requisicao<PaginaSpring<ConversaResumoDTO>>('/lojista/conversas?size=100');
+  return pagina.content ?? [];
+}
+
+/**
+ * GET /lojista/conversas/{id}/mensagens — paginado, mais recentes primeiro.
+ * O componente de chat deve inverter a ordem antes de renderizar (mais
+ * antiga no topo), já que o backend devolve DESC por enviadaEm.
+ */
+export async function listarMensagens(conversaId: string, params?: { page?: number; size?: number }): Promise<MensagemDTO[]> {
+  const search = new URLSearchParams();
+  search.set('size', String(params?.size ?? 30));
+  if (params?.page !== undefined) search.set('page', String(params.page));
+
+  const pagina = await requisicao<PaginaSpring<MensagemDTO>>(`/lojista/conversas/${conversaId}/mensagens?${search.toString()}`);
+  return pagina.content ?? [];
+}
+
+/** PATCH /lojista/conversas/{id}/lida */
+export async function marcarConversaComoLida(conversaId: string): Promise<void> {
+  return requisicao<void>(`/lojista/conversas/${conversaId}/lida`, {
     method: 'PATCH',
   });
 }

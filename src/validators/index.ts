@@ -38,7 +38,7 @@ export function normalizarEmail(valor: string): string {
 
 /** Gera UUID v4 (campo `id` exigido pelo RegistroRequestDTO). */
 export function gerarUuid(): string {
-  const cryptoObj = typeof crypto !== 'undefined' ? (crypto as any) : undefined;
+  const cryptoObj = typeof crypto !== 'undefined' ? crypto : undefined;
   if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
     return cryptoObj.randomUUID() as string;
   }

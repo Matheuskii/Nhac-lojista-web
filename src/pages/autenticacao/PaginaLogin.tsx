@@ -75,7 +75,7 @@ export default function PaginaLogin() {
     try {
       await entrar(email.trim().toLowerCase(), senha);
       navigate('/');
-    } catch (err: any) {
+    } catch (err: unknown) {
       const tratado = tratarErroApi(err);
       if (tratado.rateLimit) {
         // 429 → bloqueia novas tentativas com temporizador.

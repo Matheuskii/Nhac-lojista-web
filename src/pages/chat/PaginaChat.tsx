@@ -1,53 +1,115 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Avatar from '../../components/ui/Avatar';
 import Botao from '../../components/ui/Botao';
-import { conversasMock } from '../../dados/conversas';
-import { pedidosMock } from '../../dados/pedidos';
-import { formatarData, formatarMoeda } from '../../utils/formatacao';
-import { Send, ArrowLeft, MessageSquare, Receipt } from 'lucide-react';
+import {
+  listarConversas,
+  listarMensagens,
+  marcarConversaComoLida,
+  ConversaResumoDTO,
+  MensagemDTO,
+} from '../../services/api';
+import { conectarChatSocket, ChatSocket } from '../../services/chatSocket';
+import { tratarErroApi } from '../../utils/errosApi';
+import { useToast } from '../../contexts/ToastContext';
+import { formatarData, formatarHora } from '../../utils/formatacao';
+import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
 import estilos from './PaginaChat.module.css';
 
 const MENSAGENS_PRE_PRONTAS = [
-  "Pedido confirmado! ✅",
-  "Seu pedido está sendo preparado 🍳",
-  "Seu pedido saiu para entrega 🚗",
-  "Infelizmente não temos esse item disponível",
-  "Obrigado pela preferência! ⭐"
+  'Pedido confirmado! ✅',
+  'Seu pedido está sendo preparado 🍳',
+  'Seu pedido saiu para entrega 🚗',
+  'Infelizmente não temos esse item disponível',
+  'Obrigado pela preferência! ⭐',
 ];
 
 const PaginaChat = () => {
-  const [conversas, setConversas] = useState(conversasMock);
+  const { mostrarToast } = useToast();
+  const [conversas, setConversas] = useState<ConversaResumoDTO[]>([]);
   const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null);
+  const [mensagens, setMensagens] = useState<MensagemDTO[]>([]);
   const [novaMensagem, setNovaMensagem] = useState('');
+  const [carregandoConversas, setCarregandoConversas] = useState(true);
+  const [carregandoMensagens, setCarregandoMensagens] = useState(false);
 
-  const conversaAtiva = conversas.find(c => c.id === conversaAtivaId);
-  const pedidoAtivo = conversaAtiva ? pedidosMock.find(p => p.id === conversaAtiva.pedidoId) : null;
+  const socketRef = useRef<ChatSocket | null>(null);
+  const desinscreverRef = useRef<(() => void) | null>(null);
 
-  const handleSelecionarConversa = (id: string) => {
+  const conversaAtiva = conversas.find((c) => c.id === conversaAtivaId) ?? null;
+
+  const carregarConversas = useCallback(async () => {
+    try {
+      setCarregandoConversas(true);
+      const dados = await listarConversas();
+      setConversas(dados);
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      mostrarToast(tratado.mensagemGeral ?? 'Não foi possível carregar as conversas.');
+    } finally {
+      setCarregandoConversas(false);
+    }
+  }, [mostrarToast]);
+
+  useEffect(() => {
+    const socket = conectarChatSocket();
+    socket.aoErro((mensagem) => mostrarToast(mensagem));
+    socketRef.current = socket;
+
+    carregarConversas();
+
+    return () => {
+      desinscreverRef.current?.();
+      socket.desconectar();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelecionarConversa = async (id: string) => {
+    desinscreverRef.current?.();
     setConversaAtivaId(id);
-    setConversas(conversas.map(c => c.id === id ? { ...c, naoLidas: 0 } : c));
+    setMensagens([]);
+
+    try {
+      setCarregandoMensagens(true);
+      const historico = await listarMensagens(id);
+      // backend devolve mais recente primeiro — inverte pra renderizar antiga -> nova
+      setMensagens([...historico].reverse());
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      mostrarToast(tratado.mensagemGeral ?? 'Não foi possível carregar o histórico.');
+    } finally {
+      setCarregandoMensagens(false);
+    }
+
+    marcarConversaComoLida(id).catch(() => {
+      /* melhor esforço — não bloqueia a experiência se falhar */
+    });
+    setConversas((atual) => atual.map((c) => (c.id === id ? { ...c, naoLidas: 0 } : c)));
+
+    if (socketRef.current) {
+      desinscreverRef.current = socketRef.current.assinarConversa(id, (mensagem) => {
+        setMensagens((atual) => [...atual, mensagem]);
+        setConversas((atual) =>
+          atual.map((c) =>
+            c.id === mensagem.conversaId
+              ? { ...c, ultimaMensagemPreview: mensagem.conteudo, ultimaMensagemEm: mensagem.enviadaEm }
+              : c
+          )
+        );
+      });
+    }
   };
 
   const handleEnviar = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!novaMensagem.trim() || !conversaAtiva) return;
+    if (!novaMensagem.trim() || !conversaAtiva || !socketRef.current) return;
 
-    const nova = {
-      id: Date.now().toString(),
-      remetenteId: 'loja-001',
-      remetenteNome: 'Burguer Mania',
-      ehLoja: true,
-      conteudo: novaMensagem,
-      dataEnvio: new Date().toISOString(),
-      lida: true
-    };
-
-    setConversas(conversas.map(c => 
-      c.id === conversaAtiva.id 
-        ? { ...c, mensagens: [...c.mensagens, nova], ultimaMensagem: novaMensagem, dataUltimaMensagem: new Date().toISOString() }
-        : c
-    ));
+    // Não adiciona a mensagem localmente aqui — o backend faz o broadcast de
+    // volta pro remetente também (a assinatura em /topic/conversas/{id} já
+    // está ativa pra essa conversa), então ela chega pelo mesmo caminho que
+    // a mensagem do cliente chegaria.
+    socketRef.current.enviarMensagem(conversaAtiva.id, novaMensagem.trim());
     setNovaMensagem('');
   };
 
@@ -59,28 +121,31 @@ const PaginaChat = () => {
     <LayoutPagina titulo="Chat">
       <div className={estilos.container}>
         <div className={`${estilos.listaConversas} ${conversaAtivaId ? estilos.esconderMobile : ''}`}>
-          {conversas.map(conversa => (
-            <div 
-              key={conversa.id} 
-              className={`${estilos.itemConversa} ${conversaAtivaId === conversa.id ? estilos.ativo : ''}`}
-              onClick={() => handleSelecionarConversa(conversa.id)}
-            >
-              <Avatar nome={conversa.clienteNome} fotoUrl={conversa.clienteFotoUrl} tamanho="medio" />
-              <div className={estilos.infoConversa}>
-                <div className={estilos.linhaTopo}>
-                  <span className={estilos.nomeCliente}>{conversa.clienteNome}</span>
-                  <span className={estilos.tempo}>{formatarData(conversa.dataUltimaMensagem).split(' ')[0]}</span>
+          {carregandoConversas ? (
+            <p style={{ padding: '1rem', color: 'var(--nhac-texto-claro)' }}>Carregando conversas...</p>
+          ) : conversas.length === 0 ? (
+            <p style={{ padding: '1rem', color: 'var(--nhac-texto-claro)' }}>Nenhuma conversa ainda.</p>
+          ) : (
+            conversas.map((conversa) => (
+              <div
+                key={conversa.id}
+                className={`${estilos.itemConversa} ${conversaAtivaId === conversa.id ? estilos.ativo : ''}`}
+                onClick={() => handleSelecionarConversa(conversa.id)}
+              >
+                <Avatar nome={conversa.clienteNome} tamanho="medio" />
+                <div className={estilos.infoConversa}>
+                  <div className={estilos.linhaTopo}>
+                    <span className={estilos.nomeCliente}>{conversa.clienteNome}</span>
+                    <span className={estilos.tempo}>{formatarData(conversa.ultimaMensagemEm).split(' ')[0]}</span>
+                  </div>
+                  <div className={estilos.linhaBase}>
+                    <span className={estilos.previa}>{conversa.ultimaMensagemPreview ?? 'Sem mensagens ainda'}</span>
+                  </div>
                 </div>
-                <div className={estilos.linhaBase}>
-                  <span className={estilos.pedido}>#{conversa.numeroPedido}</span>
-                  <span className={estilos.previa}>{conversa.ultimaMensagem}</span>
-                </div>
+                {conversa.naoLidas > 0 && <div className={estilos.badge}>{conversa.naoLidas}</div>}
               </div>
-              {conversa.naoLidas > 0 && (
-                <div className={estilos.badge}>{conversa.naoLidas}</div>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         <div className={`${estilos.areaChat} ${!conversaAtivaId ? estilos.esconderMobile : ''}`}>
@@ -90,70 +155,45 @@ const PaginaChat = () => {
                 <button className={estilos.voltarMobile} onClick={() => setConversaAtivaId(null)}>
                   <ArrowLeft size={24} />
                 </button>
-                <Avatar nome={conversaAtiva.clienteNome} fotoUrl={conversaAtiva.clienteFotoUrl} tamanho="pequeno" />
+                <Avatar nome={conversaAtiva.clienteNome} tamanho="pequeno" />
                 <div className={estilos.cabecalhoInfo}>
                   <h3 className={estilos.chatNome}>{conversaAtiva.clienteNome}</h3>
-                  <span className={estilos.chatPedido}>Pedido #{conversaAtiva.numeroPedido}</span>
                 </div>
               </header>
 
               <div className={estilos.mensagensContainer}>
                 <div className={estilos.mensagens}>
-                  {pedidoAtivo && (
-                    <div className={estilos.cardPedidoWrapper}>
-                      <div className={estilos.cardPedido}>
-                        <div className={estilos.cardPedidoHeader}>
-                          <Receipt size={16} />
-                          <span>Referência do Pedido</span>
-                        </div>
-                        <div className={estilos.cardPedidoContent}>
-                          <div className={estilos.cardPedidoRow}>
-                            <span className={estilos.cardPedidoLabel}>Pedido:</span>
-                            <span className={estilos.cardPedidoValue}>#{pedidoAtivo.numeroPedido}</span>
-                          </div>
-                          <div className={estilos.cardPedidoRow}>
-                            <span className={estilos.cardPedidoLabel}>Status:</span>
-                            <span className={estilos.cardPedidoValue} style={{textTransform: 'capitalize'}}>{pedidoAtivo.status.replace('_', ' ')}</span>
-                          </div>
-                          <div className={estilos.cardPedidoRow}>
-                            <span className={estilos.cardPedidoLabel}>Total:</span>
-                            <span className={estilos.cardPedidoValue}>{formatarMoeda(pedidoAtivo.valorTotal)}</span>
-                          </div>
-                        </div>
+                  {carregandoMensagens ? (
+                    <p style={{ color: 'var(--nhac-texto-claro)', textAlign: 'center' }}>Carregando mensagens...</p>
+                  ) : (
+                    mensagens.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`${estilos.mensagemWrapper} ${msg.remetenteTipo === 'LOJA' ? estilos.minhaMensagem : estilos.mensagemCliente}`}
+                      >
+                        <div className={estilos.balao}>{msg.conteudo}</div>
+                        <span className={estilos.hora}>{formatarHora(msg.enviadaEm)}</span>
                       </div>
-                    </div>
+                    ))
                   )}
-                  
-                  {conversaAtiva.mensagens.map(msg => (
-                    <div key={msg.id} className={`${estilos.mensagemWrapper} ${msg.ehLoja ? estilos.minhaMensagem : estilos.mensagemCliente}`}>
-                      <div className={estilos.balao}>
-                        {msg.conteudo}
-                      </div>
-                      <span className={estilos.hora}>{formatarData(msg.dataEnvio)}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
 
               <div className={estilos.areaEnvio}>
                 <div className={estilos.mensagensRapidas}>
                   {MENSAGENS_PRE_PRONTAS.map((msg, idx) => (
-                    <button 
-                      key={idx} 
-                      className={estilos.btnMensagemRapida}
-                      onClick={() => usarMensagemRapida(msg)}
-                    >
+                    <button key={idx} className={estilos.btnMensagemRapida} onClick={() => usarMensagemRapida(msg)}>
                       {msg}
                     </button>
                   ))}
                 </div>
                 <form className={estilos.formEnvio} onSubmit={handleEnviar}>
-                  <input 
-                    type="text" 
-                    className={estilos.inputMensagem} 
-                    value={novaMensagem} 
-                    onChange={(e) => setNovaMensagem(e.target.value)} 
-                    placeholder="Digite sua mensagem..." 
+                  <input
+                    type="text"
+                    className={estilos.inputMensagem}
+                    value={novaMensagem}
+                    onChange={(e) => setNovaMensagem(e.target.value)}
+                    placeholder="Digite sua mensagem..."
                   />
                   <Botao type="submit" icone={<Send size={20} />} disabled={!novaMensagem.trim()} />
                 </form>

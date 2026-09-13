@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   User, Mail, Phone, Lock, Eye, EyeOff, 
@@ -109,6 +109,19 @@ export default function PaginaCadastro({ modo = 'completo' }: PropsPaginaCadastr
   const [carregando, setCarregando] = useState(false);
   // Spec §7: 429 no envio de código → bloqueia o botão Avançar com temporizador.
   const [bloqueadoEnvioAte, setBloqueadoEnvioAte] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (bloqueadoEnvioAte === null) return;
+
+    const tempoRestante = bloqueadoEnvioAte - Date.now();
+    if (tempoRestante <= 0) {
+      setBloqueadoEnvioAte(null);
+      return;
+    }
+
+    const temporizador = window.setTimeout(() => setBloqueadoEnvioAte(null), tempoRestante);
+    return () => window.clearTimeout(temporizador);
+  }, [bloqueadoEnvioAte]);
 
   // Etapa 0 — Dados Pessoais
   const [nomeCompleto, setNomeCompleto] = useState('');
@@ -472,7 +485,7 @@ export default function PaginaCadastro({ modo = 'completo' }: PropsPaginaCadastr
         setCidade(dados.localidade);
         setUf(dados.uf);
         if (dados.complemento) setComplemento(dados.complemento);
-      } catch (erro) {
+      } catch {
         setErros(prev => ({ ...prev, cep: 'CEP não encontrado' }));
       } finally {
         setBuscandoCep(false);
@@ -992,7 +1005,13 @@ export default function PaginaCadastro({ modo = 'completo' }: PropsPaginaCadastr
               )}
 
               {etapaAtual < etapas.length - 1 ? (
-                <Botao type="button" variante="primario" onClick={avancar} carregando={carregando}>
+                <Botao
+                  type="button"
+                  variante="primario"
+                  onClick={avancar}
+                  carregando={carregando}
+                  disabled={bloqueadoEnvioAte !== null}
+                >
                   Continuar
                 </Botao>
               ) : (

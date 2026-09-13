@@ -29,7 +29,10 @@ const PaginaEditarInfoLoja = () => {
     setSalvando(true);
     setErro('');
     try {
-      await atualizarLoja(loja.id, { nome, descricao, categoria });
+      // PUT /lojas/{id} exige o payload completo — espalha a loja já
+      // carregada e sobrescreve só os campos editados nesta tela.
+      const { id, ...lojaSemId } = loja;
+      await atualizarLoja(id, { ...lojaSemId, nome, descricao, categoria });
       await recarregar();
       navigate('/configuracoes');
     } catch (err) {

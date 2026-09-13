@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import InputTexto from '../../components/ui/InputTexto';
@@ -77,13 +77,7 @@ const PaginaFormularioProduto = () => {
     return Object.keys(novosErros).length === 0;
   };
 
-  useEffect(() => {
-    if (ehEdicao) {
-      carregarProduto();
-    }
-  }, [ehEdicao, id]);
-
-  async function carregarProduto() {
+  const carregarProduto = useCallback(async () => {
     try {
       setCarregando(true);
       setErro(null);
@@ -101,7 +95,13 @@ const PaginaFormularioProduto = () => {
     } finally {
       setCarregando(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (ehEdicao) {
+      carregarProduto();
+    }
+  }, [ehEdicao, carregarProduto]);
 
   const opcoesCategorias = [
     { valor: '', rotulo: 'Selecione uma categoria' },
@@ -147,7 +147,7 @@ const PaginaFormularioProduto = () => {
       if (!id) return;
       await desativarProduto(id);
       navigate('/produtos');
-    } catch (err) {
+    } catch {
       alert('Erro ao excluir produto');
     }
   };
@@ -155,6 +155,8 @@ const PaginaFormularioProduto = () => {
   return (
     <LayoutPagina titulo={ehEdicao ? 'Editar Produto' : 'Novo Produto'}>
       <form onSubmit={handleSalvar} className={estilos.form}>
+        {carregando && <p className={estilos.status}>Carregando produto...</p>}
+        {erro && <p className={estilos.erro} role="alert">{erro}</p>}
         <div className={estilos.container}>
           <Cartao className={estilos.secao}>
             <h3 className={estilos.tituloSecao}>Informações Básicas</h3>

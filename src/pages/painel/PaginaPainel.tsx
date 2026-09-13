@@ -1,42 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LayoutPagina from '../../components/layout/LayoutPagina';
 import Cartao from '../../components/ui/Cartao';
 import Botao from '../../components/ui/Botao';
 import Emblema from '../../components/ui/Emblema';
 import Toggle from '../../components/ui/Toggle';
-import { resumoFinanceiroMock, faturamentoDiarioMock } from '../../dados/financeiro';
-import { pedidosMock } from '../../dados/pedidos';
+import { buscarPainel, atualizarLoja, PainelResumoDTO } from '../../services/api';
 import { useAutenticacao } from '../../hooks/useAutenticacao';
 import { useLoja } from '../../contexts/LojaContext';
-import { formatarMoeda, formatarData, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
-import { DollarSign, ShoppingBag, TrendingUp, ChevronRight, Clock, Star, ChefHat, Bike, CheckCircle } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { tratarErroApi } from '../../utils/errosApi';
+import { formatarMoeda, formatarHora, STATUS_PEDIDO_INFO } from '../../utils/formatacao';
+import { DollarSign, ShoppingBag, ChevronRight, Clock, Star, ChefHat, Bike, CheckCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import estilos from './PaginaPainel.module.css';
 
 const PaginaPainel = () => {
   const navigate = useNavigate();
   const { usuario } = useAutenticacao();
-  const { loja, carregando } = useLoja();
+  const { loja, carregando: carregandoLoja, recarregar: recarregarLoja } = useLoja();
+  const { mostrarToast } = useToast();
   const usuarioNome = usuario?.nomeCompleto?.split(' ')[0] ?? 'Lojista';
-  const pedidosRecentes = pedidosMock.slice(0, 5);
 
-  const [lojaAberta, setLojaAberta] = useState(loja?.isAberto ?? true);
+  const [painel, setPainel] = useState<PainelResumoDTO | null>(null);
+  const [carregandoPainel, setCarregandoPainel] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [alterandoStatusLoja, setAlterandoStatusLoja] = useState(false);
 
-  // Status de pedidos mock (você pode iterar pelos pedidos ou usar dados já definidos)
-  const pedidosEmPreparo = pedidosMock.filter(p => p.status === 'PREPARANDO' || p.status === 'PENDENTE' || p.status === 'PAGO').length;
-  const pedidosCaminho = pedidosMock.filter(p => p.status === 'SAIU_ENTREGA').length;
-  const pedidosConcluidos = pedidosMock.filter(p => p.status === 'ENTREGUE').length;
+  const carregarPainel = useCallback(async () => {
+    try {
+      setCarregandoPainel(true);
+      setErro(null);
+      const dados = await buscarPainel();
+      setPainel(dados);
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      setErro(tratado.mensagemGeral ?? 'Não foi possível carregar o painel.');
+    } finally {
+      setCarregandoPainel(false);
+    }
+  }, []);
 
-  const faturamentoSemana = faturamentoDiarioMock.slice(-7);
-  const variacaoDiaAnterior = 12.5; // Exemplo fixo de variação
+  useEffect(() => {
+    carregarPainel();
+  }, [carregarPainel]);
 
   const formatoDataGrafico = (dataString: string) => {
-    const data = new Date(dataString);
+    const data = new Date(`${dataString}T00:00:00`);
     return `${data.getDate()}/${data.getMonth() + 1}`;
   };
 
-  if (carregando || !loja) {
+  /**
+   * Antes, esse toggle era só estado local (nunca persistia). Agora chama
+   * PUT /lojas/{id} de verdade — precisa mandar a loja inteira (o backend
+   * não aceita payload parcial), por isso espalha `loja` antes de sobrescrever
+   * isAberto.
+   */
+  const handleAlternarLojaAberta = async (novoValor: boolean) => {
+    if (!loja) return;
+    setAlterandoStatusLoja(true);
+    try {
+      const { id, ...lojaSemId } = loja;
+      await atualizarLoja(id, { ...lojaSemId, isAberto: novoValor });
+      await recarregarLoja();
+      await carregarPainel();
+    } catch (err) {
+      const tratado = tratarErroApi(err);
+      mostrarToast(tratado.mensagemGeral ?? 'Não foi possível atualizar o status da loja.');
+    } finally {
+      setAlterandoStatusLoja(false);
+    }
+  };
+
+  if (carregandoLoja || !loja || carregandoPainel) {
     return (
       <LayoutPagina titulo="Painel">
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--nhac-texto-claro)' }}>
@@ -45,6 +81,19 @@ const PaginaPainel = () => {
       </LayoutPagina>
     );
   }
+
+  if (erro || !painel) {
+    return (
+      <LayoutPagina titulo="Painel">
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--nhac-texto-claro)' }}>
+          <p>{erro ?? 'Não foi possível carregar o painel.'}</p>
+          <Botao variante="secundario" onClick={carregarPainel}>Tentar novamente</Botao>
+        </div>
+      </LayoutPagina>
+    );
+  }
+
+  const lojaAberta = painel.lojaAberta;
 
   return (
     <LayoutPagina titulo="Painel">
@@ -56,7 +105,7 @@ const PaginaPainel = () => {
           </div>
           <div className={estilos.statusLoja}>
             <span className={estilos.statusTexto}>{lojaAberta ? 'Sua loja está aberta' : 'Sua loja está fechada'}</span>
-            <Toggle rotulo="" ativo={lojaAberta} aoMudar={setLojaAberta} />
+            <Toggle rotulo="" ativo={lojaAberta} aoMudar={handleAlternarLojaAberta} desabilitado={alterandoStatusLoja} />
             <div className={`${estilos.statusBolinha} ${lojaAberta ? estilos.aberta : estilos.fechada}`} />
           </div>
         </header>
@@ -68,7 +117,7 @@ const PaginaPainel = () => {
             </div>
             <div className={estilos.kpiInfo}>
               <span className={estilos.kpiRotulo}>Faturamento do Dia</span>
-              <span className={estilos.kpiValor}>{formatarMoeda(resumoFinanceiroMock.faturamentoDia)}</span>
+              <span className={estilos.kpiValor}>{formatarMoeda(painel.faturamentoHoje)}</span>
             </div>
           </Cartao>
           <Cartao className={estilos.cartaoKpi}>
@@ -76,17 +125,8 @@ const PaginaPainel = () => {
               <ShoppingBag size={24} />
             </div>
             <div className={estilos.kpiInfo}>
-              <span className={estilos.kpiRotulo}>Pedidos do Dia</span>
-              <span className={estilos.kpiValor}>{resumoFinanceiroMock.numeroPedidosDia}</span>
-            </div>
-          </Cartao>
-          <Cartao className={estilos.cartaoKpi}>
-            <div className={estilos.kpiIcone} style={{ backgroundColor: '#E8F5E9', color: '#388E3C' }}>
-              <TrendingUp size={24} />
-            </div>
-            <div className={estilos.kpiInfo}>
-              <span className={estilos.kpiRotulo}>Ticket Médio</span>
-              <span className={estilos.kpiValor}>{formatarMoeda(resumoFinanceiroMock.ticketMedio)}</span>
+              <span className={estilos.kpiRotulo}>Concluídos Hoje</span>
+              <span className={estilos.kpiValor}>{painel.pedidosConcluidosHoje}</span>
             </div>
           </Cartao>
           <Cartao className={estilos.cartaoKpi}>
@@ -108,21 +148,21 @@ const PaginaPainel = () => {
           <Cartao className={`${estilos.cartaoStatus} ${estilos.statusAmarelo}`}>
             <ChefHat size={28} className={estilos.iconeStatus} />
             <div className={estilos.infoStatus}>
-              <span className={estilos.valorStatus}>{pedidosEmPreparo}</span>
+              <span className={estilos.valorStatus}>{painel.pedidosEmPreparo}</span>
               <span className={estilos.rotuloStatus}>Em preparo</span>
             </div>
           </Cartao>
           <Cartao className={`${estilos.cartaoStatus} ${estilos.statusAzul}`}>
             <Bike size={28} className={estilos.iconeStatus} />
             <div className={estilos.infoStatus}>
-              <span className={estilos.valorStatus}>{pedidosCaminho}</span>
+              <span className={estilos.valorStatus}>{painel.pedidosACaminho}</span>
               <span className={estilos.rotuloStatus}>A caminho</span>
             </div>
           </Cartao>
           <Cartao className={`${estilos.cartaoStatus} ${estilos.statusVerde}`}>
             <CheckCircle size={28} className={estilos.iconeStatus} />
             <div className={estilos.infoStatus}>
-              <span className={estilos.valorStatus}>{pedidosConcluidos}</span>
+              <span className={estilos.valorStatus}>{painel.pedidosConcluidosHoje}</span>
               <span className={estilos.rotuloStatus}>Concluídos hoje</span>
             </div>
           </Cartao>
@@ -135,21 +175,17 @@ const PaginaPainel = () => {
                 <div className={estilos.graficoHeader}>
                   <div className={estilos.graficoTitulos}>
                     <h3 className={estilos.secaoTitulo}>Faturamento (Últimos 7 dias)</h3>
-                    <div className={estilos.graficoVariacao}>
-                      <TrendingUp size={16} />
-                      <span>+{variacaoDiaAnterior}% em relação a ontem</span>
-                    </div>
                   </div>
                 </div>
                 <div className={estilos.areaGrafico}>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={faturamentoSemana} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <LineChart data={painel.faturamentoUltimos7Dias} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--nhac-borda)" />
                       <XAxis dataKey="data" tickFormatter={formatoDataGrafico} stroke="var(--nhac-texto-claro)" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="var(--nhac-texto-claro)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${val}`} />
-                      <Tooltip 
-                        formatter={(value: any) => [formatarMoeda(Number(value) || 0), 'Faturamento']}
-                        labelFormatter={(label: any) => formatoDataGrafico(String(label || ''))}
+                      <Tooltip
+                        formatter={(value: unknown) => [formatarMoeda(Number(value) || 0), 'Faturamento']}
+                        labelFormatter={(label: unknown) => formatoDataGrafico(String(label || ''))}
                         contentStyle={{ borderRadius: '8px', border: '1px solid var(--nhac-borda)' }}
                       />
                       <Line type="monotone" dataKey="valor" stroke="var(--nhac-primaria)" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
@@ -165,10 +201,13 @@ const PaginaPainel = () => {
                 <Botao variante="fantasma" onClick={() => navigate('/pedidos')}>Ver todos</Botao>
               </div>
               <div className={estilos.listaPedidos}>
-                {pedidosRecentes.map(pedido => (
+                {painel.pedidosRecentes.length === 0 && (
+                  <p style={{ color: 'var(--nhac-texto-claro)', fontSize: '0.875rem' }}>Nenhum pedido ainda.</p>
+                )}
+                {painel.pedidosRecentes.map(pedido => (
                   <Cartao key={pedido.id} className={estilos.cartaoPedido}>
                     <div className={estilos.pedidoPrincipal}>
-                      <span className={estilos.pedidoId}>#{pedido.numeroPedido}</span>
+                      <span className={estilos.pedidoId}>#{pedido.id.slice(0, 8)}</span>
                       <span className={estilos.pedidoCliente}>{pedido.clienteNome}</span>
                     </div>
                     <div className={estilos.pedidoStatus}>
@@ -181,7 +220,7 @@ const PaginaPainel = () => {
                     </div>
                     <div className={estilos.pedidoTempo}>
                       <Clock size={14} />
-                      <span>{formatarData(pedido.dataCriacao)}</span>
+                      <span>{formatarHora(pedido.criadoEm)}</span>
                     </div>
                     <Botao variante="fantasma" onClick={() => navigate(`/pedidos/${pedido.id}`)} icone={<ChevronRight size={20} />} />
                   </Cartao>
